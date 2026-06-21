@@ -87,7 +87,14 @@ cd /opt/tools-manager
 ### 3. 下载生产环境配置
 
 ```bash
+# 方式 1：从 GitHub 直接下载（国外服务器推荐）
 curl -fsSL "https://raw.githubusercontent.com/secoworld/my_tools_manager/main/docker-compose.prod.yml" -o docker-compose.prod.yml
+
+# 方式 2：国内服务器使用代理下载（如果方式 1 失败）
+curl -fsSL "https://ghproxy.com/https://raw.githubusercontent.com/secoworld/my_tools_manager/main/docker-compose.prod.yml" -o docker-compose.prod.yml
+
+# 方式 3：使用 jsDelivr CDN
+curl -fsSL "https://cdn.jsdelivr.net/gh/secoworld/my_tools_manager@main/docker-compose.prod.yml" -o docker-compose.prod.yml
 ```
 
 ### 4. 登录 GHCR（首次）
@@ -177,6 +184,52 @@ echo "你的Token" | docker login ghcr.io -u secoworld --password-stdin
 # 手动拉取测试
 docker pull ghcr.io/secoworld/tools-manager:latest
 ```
+
+### 国内服务器镜像加速（重要）
+
+国内服务器直接拉取 `ghcr.io` 镜像经常超时失败，可通过以下方式加速：
+
+#### 方式 1：使用 GHCR 代理（推荐）
+
+通过国内镜像代理拉取，然后重新打标签：
+
+```bash
+# 使用南京大学镜像代理
+docker pull ghcr.nju.edu.cn/secoworld/tools-manager:latest
+docker tag ghcr.nju.edu.cn/secoworld/tools-manager:latest ghcr.io/secoworld/tools-manager:latest
+
+# 或使用 dockerproxy
+docker pull ghcr.dockerproxy.com/secoworld/tools-manager:latest
+docker tag ghcr.dockerproxy.com/secoworld/tools-manager:latest ghcr.io/secoworld/tools-manager:latest
+```
+
+#### 方式 2：通过环境变量指定镜像源启动
+
+`docker-compose.prod.yml` 支持通过 `IMAGE` 环境变量覆盖镜像地址：
+
+```bash
+# 使用代理镜像启动
+IMAGE=ghcr.nju.edu.cn/secoworld/tools-manager:latest \
+  docker compose -f docker-compose.prod.yml up -d
+```
+
+#### 方式 3：配置 GitHub Actions 自动使用代理
+
+在 GitHub 仓库 → **Settings → Variables and secrets → Actions → Variables** 中添加：
+
+| Variable 名称 | 值 | 说明 |
+|---------------|-----|------|
+| `GHCR_PROXY` | `ghcr.nju.edu.cn` | GHCR 镜像加速地址 |
+
+配置后，GitHub Actions 部署时会：
+1. 优先直接从 GHCR 拉取
+2. 失败后自动尝试 `GHCR_PROXY` 指定的代理地址
+3. 同时也会自动尝试 `ghcr.nju.edu.cn`、`ghcr.dockerproxy.com` 等默认代理
+
+> **常用 GHCR 代理列表**（可用性可能变化，建议测试后选择）：
+> - `ghcr.nju.edu.cn`（南京大学）
+> - `ghcr.dockerproxy.com`
+> - 自建 Cloudflare Workers 代理
 
 ### SSH 连接失败
 

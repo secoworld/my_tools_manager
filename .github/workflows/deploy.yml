@@ -79,12 +79,16 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
           IMAGE: ${{ needs.build-and-push.outputs.image }}
+          # GHCR 镜像加速地址（国内服务器推荐配置）
+          # 常用代理：ghcr.nju.edu.cn / ghcr.dockerproxy.com
+          # 留空则不使用代理；配置后拉取失败会自动尝试代理
+          GHCR_PROXY: ${{ vars.GHCR_PROXY }}
         with:
           host: ${{ vars.SERVER_HOST }}
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ vars.SERVER_PORT || 22 }}
-          envs: GHCR_TOKEN,GHCR_USER,IMAGE
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE,GHCR_PROXY
           script: |
             set -x  # 显示每条执行的命令，便于调试
 
@@ -115,12 +119,37 @@ jobs:
             cd "$DEPLOY_DIR"
 
             # ---- 下载最新的 docker-compose.prod.yml ----
+            # 优先从 GitHub raw 下载，失败则尝试国内代理
             echo "下载 docker-compose.prod.yml..."
-            curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml" \
-              -o docker-compose.prod.yml || {
-              echo "❌ 下载 docker-compose.prod.yml 失败"
+            RAW_URL="https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml"
+            # 国内可用的 raw 代理列表（按顺序尝试）
+            RAW_PROXIES=(
+              "https://ghproxy.com/https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml"
+              "https://gh-proxy.com/https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml"
+              "https://cdn.jsdelivr.net/gh/${{ github.repository }}@main/docker-compose.prod.yml"
+            )
+
+            DOWNLOADED=0
+            if curl -fsSL "$RAW_URL" -o docker-compose.prod.yml; then
+              echo "✅ 从 GitHub raw 下载成功"
+              DOWNLOADED=1
+            else
+              echo "⚠️ GitHub raw 下载失败，尝试国内代理..."
+              for PROXY_URL in "${RAW_PROXIES[@]}"; do
+                echo "尝试: $PROXY_URL"
+                if curl -fsSL "$PROXY_URL" -o docker-compose.prod.yml; then
+                  echo "✅ 通过代理下载成功: $PROXY_URL"
+                  DOWNLOADED=1
+                  break
+                fi
+              done
+            fi
+
+            if [ "$DOWNLOADED" -eq 0 ]; then
+              echo "❌ 所有下载方式均失败"
+              echo "请手动上传 docker-compose.prod.yml 到 $DEPLOY_DIR/"
               exit 1
-            }
+            fi
             echo "✅ 配置文件已更新"
 
             # ---- 登录 GHCR（可选，公开镜像可跳过）----
@@ -133,15 +162,53 @@ jobs:
               echo "ℹ️ 未配置 GHCR_TOKEN，尝试匿名拉取（仅公开镜像可用）"
             fi
 
-            # ---- 拉取最新镜像 ----
+            # ---- 拉取最新镜像（支持国内加速）----
             echo "拉取最新镜像..."
-            $DC -f docker-compose.prod.yml pull || {
-              echo "❌ 镜像拉取失败"
+            PULL_SUCCESS=0
+
+            # 方式 1：直接从 GHCR 拉取
+            if $DC -f docker-compose.prod.yml pull; then
+              echo "✅ 直接从 GHCR 拉取成功"
+              PULL_SUCCESS=1
+            else
+              echo "⚠️ 直接拉取失败"
+            fi
+
+            # 方式 2：通过代理拉取（如果配置了 GHCR_PROXY 或直接拉取失败）
+            if [ "$PULL_SUCCESS" -eq 0 ]; then
+              # 如果未配置 GHCR_PROXY，使用默认代理列表
+              if [ -z "$GHCR_PROXY" ]; then
+                PROXY_LIST=(
+                  "ghcr.nju.edu.cn"
+                  "ghcr.dockerproxy.com"
+                )
+              else
+                PROXY_LIST=("$GHCR_PROXY")
+              fi
+
+              # 原始镜像名（不含 tag）
+              ORIG_IMAGE="${IMAGE}/tools-manager"
+              for PROXY in "${PROXY_LIST[@]}"; do
+                PROXY_IMAGE="${PROXY}/secoworld/tools-manager:latest"
+                echo "尝试通过代理拉取: $PROXY_IMAGE"
+                if docker pull "$PROXY_IMAGE"; then
+                  echo "✅ 通过代理拉取成功: $PROXY"
+                  # 重新打标签为原始镜像名
+                  docker tag "$PROXY_IMAGE" "${ORIG_IMAGE}:latest"
+                  PULL_SUCCESS=1
+                  break
+                fi
+              done
+            fi
+
+            if [ "$PULL_SUCCESS" -eq 0 ]; then
+              echo "❌ 镜像拉取失败（所有方式均失败）"
               echo "请检查："
               echo "  1. 镜像是否为公开（GitHub → Packages → tools-manager → Package settings → Public）"
               echo "  2. 或配置 GHCR_TOKEN 和 GHCR_USER 变量"
+              echo "  3. 国内服务器可配置 GHCR_PROXY 变量使用镜像加速（如 ghcr.nju.edu.cn）"
               exit 1
-            }
+            fi
 
             # ---- 重启容器 ----
             echo "重启容器..."
@@ -175,6 +242,7 @@ jobs:
             echo "2. 检查 GitHub Secrets: SERVER_SSH_KEY"
             echo "3. 检查服务器 Docker 和 Docker Compose 是否安装"
             echo "4. 检查 GHCR 镜像是否为公开，或配置 GHCR_TOKEN/GHCR_USER"
-            echo "5. 查看上方 SSH 步骤的详细日志（set -x 输出）"
+            echo "5. 国内服务器拉取失败时，配置 GHCR_PROXY 变量（如 ghcr.nju.edu.cn）"
+            echo "6. 查看上方 SSH 步骤的详细日志（set -x 输出）"
             exit 1
           fi
