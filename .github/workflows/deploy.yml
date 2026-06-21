@@ -130,14 +130,14 @@ jobs:
             )
 
             DOWNLOADED=0
-            if curl -fsSL "$RAW_URL" -o docker-compose.prod.yml; then
+            if curl -fsSL --connect-timeout 10 --max-time 30 "$RAW_URL" -o docker-compose.prod.yml; then
               echo "✅ 从 GitHub raw 下载成功"
               DOWNLOADED=1
             else
               echo "⚠️ GitHub raw 下载失败，尝试国内代理..."
               for PROXY_URL in "${RAW_PROXIES[@]}"; do
                 echo "尝试: $PROXY_URL"
-                if curl -fsSL "$PROXY_URL" -o docker-compose.prod.yml; then
+                if curl -fsSL --connect-timeout 10 --max-time 30 "$PROXY_URL" -o docker-compose.prod.yml; then
                   echo "✅ 通过代理下载成功: $PROXY_URL"
                   DOWNLOADED=1
                   break
