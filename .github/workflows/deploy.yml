@@ -1,0 +1,116 @@
+# ============================================================
+#   Tools Manager CI/CD Workflow
+#   推送到 main 分支时自动构建镜像 → 推送到 GHCR → SSH 部署到服务器
+# ============================================================
+
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  # 支持手动触发
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/tools-manager
+
+jobs:
+  # ---- 任务 1: 构建并推送 Docker 镜像 ----
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 登录 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 提取仓库名（小写）
+        run: |
+          echo "IMAGE_NAME=ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/tools-manager" >> $GITHUB_ENV
+
+      - name: 构建并推送镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: 输出镜像信息
+        run: |
+          echo "✅ 镜像构建完成"
+          echo "镜像地址: ${{ env.IMAGE_NAME }}:latest"
+          echo "版本标签: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+
+  # ---- 任务 2: SSH 部署到服务器 ----
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # 只有配置了服务器信息时才执行
+    if: ${{ vars.SERVER_HOST != '' }}
+
+    steps:
+      - name: SSH 部署到服务器
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SERVER_HOST }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ vars.SERVER_PORT || 22 }}
+          script: |
+            echo "===== 开始部署 Tools Manager ====="
+            echo "时间: $(date)"
+
+            # 部署目录
+            DEPLOY_DIR="/opt/tools-manager"
+            mkdir -p $DEPLOY_DIR
+            cd $DEPLOY_DIR
+
+            # 下载最新的 docker-compose.prod.yml（如果不存在）
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "下载 docker-compose.prod.yml..."
+              curl -fsSL "https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml" -o docker-compose.prod.yml
+            fi
+
+            # 登录 GHCR 拉取镜像
+            echo "登录 GitHub Container Registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 拉取最新镜像
+            echo "拉取最新镜像..."
+            docker compose -f docker-compose.prod.yml pull
+
+            # 重启容器
+            echo "重启容器..."
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+
+            # 清理旧镜像
+            echo "清理旧镜像..."
+            docker image prune -f
+
+            # 检查状态
+            echo "容器状态:"
+            docker compose -f docker-compose.prod.yml ps
+
+            echo "===== 部署完成 ====="
+            echo "访问地址: http://$(hostname -I | awk '{print $1}'):8080"
+
+      - name: 部署结果通知
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ 部署成功！"
+          else
+            echo "❌ 部署失败，请检查日志"
+            exit 1
+          fi

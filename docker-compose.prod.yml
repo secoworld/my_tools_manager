@@ -1,0 +1,30 @@
+# ============================================================
+#   Tools Manager 生产环境 Docker Compose
+#   使用 GitHub Container Registry 预构建镜像
+#   部署目录: /opt/tools-manager/
+# ============================================================
+
+version: '3.8'
+
+services:
+  tools-manager:
+    # 使用 GHCR 预构建镜像（无需本地构建）
+    image: ghcr.io/secoworld/tools-manager:latest
+    container_name: tools-manager
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/tools"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 数据持久化（命令库数据）
+    volumes:
+      - tools-manager-data:/app/data
+
+volumes:
+  tools-manager-data:
