@@ -1,0 +1,42 @@
+# ===== Java / Maven =====
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# ===== Node / Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ===== IDE =====
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== H2 Database =====
+*.db
+*.mv.db
+*.trace.db
+
+# ===== Env =====
+.env
+.env.local
+.env.*.local
