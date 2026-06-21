@@ -14,7 +14,7 @@ export MAVEN_HOME=""
 
 # --- 后端配置 ---
 # 后端服务端口
-export BACKEND_PORT=8080
+export BACKEND_PORT=8085
 
 # --- 前端配置 ---
 # 前端开发服务器端口

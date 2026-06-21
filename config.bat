@@ -14,7 +14,7 @@ set MAVEN_HOME=D:\software\apache-maven-3.9.16
 
 REM --- 后端配置 ---
 REM 后端服务端口
-set BACKEND_PORT=8080
+set BACKEND_PORT=8085
 
 REM --- 前端配置 ---
 REM 前端开发服务器端口

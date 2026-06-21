@@ -1,83 +1,100 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CopyDocument } from '@element-plus/icons-vue'
 import { useToolState } from '../composables/useToolState'
 
 const props = defineProps({
-  instanceId: {
-    type: String,
-    required: true
-  }
+  instanceId: { type: String, required: true }
 })
 
-// 输入值和单位
-const inputValue = ref('1')
-const fromUnit = ref('MB')
 // 换算基数：1024（二进制）或 1000（十进制）
 const base = ref(1024)
-
-// 状态持久化
-useToolState(props.instanceId, { inputValue, fromUnit, base })
+// 是否显示千分位逗号
+const withComma = ref(false)
 
 // 单位定义（从小到大）
 const units = [
-  { symbol: 'b', name: '比特', factor: 1 },           // bit
-  { symbol: 'B', name: '字节', factor: 8 },            // Byte = 8 bits
-  { symbol: 'KB', name: '千字节', factor: 8 * 1024 },
-  { symbol: 'MB', name: '兆字节', factor: 8 * 1024 ** 2 },
-  { symbol: 'GB', name: '千兆字节', factor: 8 * 1024 ** 3 },
-  { symbol: 'TB', name: '太字节', factor: 8 * 1024 ** 4 },
-  { symbol: 'PB', name: '拍字节', factor: 8 * 1024 ** 5 },
-  { symbol: 'EB', name: '艾字节', factor: 8 * 1024 ** 6 },
-  { symbol: 'ZB', name: '泽字节', factor: 8 * 1024 ** 7 },
-  { symbol: 'YB', name: '尧字节', factor: 8 * 1024 ** 8 }
+  { symbol: 'b', name: '比特', index: 0 },
+  { symbol: 'B', name: '字节', index: 1 },
+  { symbol: 'KB', name: '千字节', index: 2 },
+  { symbol: 'MB', name: '兆字节', index: 3 },
+  { symbol: 'GB', name: '千兆字节', index: 4 },
+  { symbol: 'TB', name: '太字节', index: 5 },
+  { symbol: 'PB', name: '拍字节', index: 6 },
+  { symbol: 'EB', name: '艾字节', index: 7 },
+  { symbol: 'ZB', name: '泽字节', index: 8 },
+  { symbol: 'YB', name: '尧字节', index: 9 }
 ]
 
-// 根据 base 重新计算 factor
-const getFactor = (index) => {
-  if (index === 0) return 1           // bit
-  if (index === 1) return 8           // Byte
-  // KB 及以上：8 * base^(index-1)
-  return 8 * Math.pow(base.value, index - 1)
+// 每个单位的输入值（字符串，支持双向编辑）
+const values = reactive({
+  b: '', B: '1', KB: '', MB: '', GB: '', TB: '', PB: '', EB: '', ZB: '', YB: ''
+})
+
+// 当前正在编辑的单位
+const activeUnit = ref('B')
+
+// 状态持久化
+useToolState(props.instanceId, { values, base, activeUnit, withComma })
+
+// 获取单位的换算因子（转成 bits）
+const getFactor = (unitIndex) => {
+  if (unitIndex === 0) return 1           // bit
+  if (unitIndex === 1) return 8           // Byte
+  return 8 * Math.pow(base.value, unitIndex - 1)
 }
 
-// 将输入值转换为 bits（基准单位）
-const bitsValue = computed(() => {
-  const num = parseFloat(inputValue.value)
-  if (isNaN(num)) return 0
-  const unitIndex = units.findIndex(u => u.symbol === fromUnit.value)
-  if (unitIndex === -1) return 0
-  return num * getFactor(unitIndex)
-})
-
-// 所有单位的换算结果
-const results = computed(() => {
-  return units.map((unit, index) => {
-    const factor = getFactor(index)
-    const value = bitsValue.value / factor
-    return {
-      ...unit,
-      value: formatValue(value)
-    }
-  })
-})
-
-// 格式化数值：大数用科学计数法，小数保留适当位数
+// 格式化数值
 const formatValue = (value) => {
   if (value === 0) return '0'
   if (Math.abs(value) < 0.000001) return value.toExponential(4)
   if (Math.abs(value) < 1) return value.toFixed(8).replace(/\.?0+$/, '')
   if (Math.abs(value) < 1024) return value.toFixed(4).replace(/\.?0+$/, '')
-  if (Math.abs(value) < 1e15) return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  if (Math.abs(value) < 1e15) {
+    // 大数值：根据 withComma 选项决定是否带千分位逗号
+    return withComma.value
+      ? value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+      : value.toFixed(2).replace(/\.?0+$/, '')
+  }
   return value.toExponential(4)
 }
 
+// 当某个输入框变化时，更新所有其他输入框
+const onInput = (unitSymbol) => {
+  activeUnit.value = unitSymbol
+  const raw = values[unitSymbol]
+  const num = parseFloat(raw)
+  if (raw === '' || isNaN(num)) {
+    // 输入为空或无效，清空所有
+    units.forEach(u => {
+      if (u.symbol !== unitSymbol) values[u.symbol] = ''
+    })
+    return
+  }
+
+  // 计算输入值的 bits 数
+  const unitIndex = units.findIndex(u => u.symbol === unitSymbol)
+  const bits = num * getFactor(unitIndex)
+
+  // 更新所有其他单位
+  units.forEach(u => {
+    if (u.symbol === unitSymbol) return
+    const factor = getFactor(u.index)
+    const converted = bits / factor
+    values[u.symbol] = formatValue(converted)
+  })
+}
+
+// 初始化：触发一次 B 的计算
+onInput('B')
+
 // 复制结果
-const copyResult = async (text) => {
+const copyResult = async (text, symbol) => {
+  if (!text) { ElMessage.warning('没有可复制的内容'); return }
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制: ' + text)
+    ElMessage.success(`已复制: ${text} ${symbol}`)
   } catch {
     ElMessage.error('复制失败')
   }
@@ -94,39 +111,47 @@ const presets = [
 ]
 
 const applyPreset = (preset) => {
-  inputValue.value = preset.value
-  fromUnit.value = preset.unit
+  // 清空所有
+  units.forEach(u => { values[u.symbol] = '' })
+  values[preset.unit] = preset.value
+  onInput(preset.unit)
+}
+
+// 切换基数时重新计算
+const onBaseChange = () => {
+  onInput(activeUnit.value)
+}
+
+// 切换千分位逗号时重新计算
+const onCommaChange = () => {
+  onInput(activeUnit.value)
 }
 </script>
 
 <template>
   <div class="storage-converter">
-    <!-- 输入区 -->
-    <div class="input-section">
-      <div class="input-row">
-        <el-input
-          v-model="inputValue"
-          placeholder="输入数值"
-          class="value-input"
-          type="number"
-        />
-        <el-select v-model="fromUnit" class="unit-select" placeholder="单位">
-          <el-option
-            v-for="unit in units"
-            :key="unit.symbol"
-            :label="`${unit.symbol} (${unit.name})`"
-            :value="unit.symbol"
-          />
-        </el-select>
-      </div>
-
-      <!-- 换算基数切换 -->
+    <!-- 顶部控制区 -->
+    <div class="control-section">
       <div class="base-toggle">
         <span class="toggle-label">换算基数：</span>
-        <el-radio-group v-model="base" size="small">
+        <el-radio-group v-model="base" size="small" @change="onBaseChange">
           <el-radio-button :value="1024">1024 (二进制)</el-radio-button>
           <el-radio-button :value="1000">1000 (十进制)</el-radio-button>
         </el-radio-group>
+        <el-checkbox v-model="withComma" size="small" @change="onCommaChange">千分位逗号</el-checkbox>
+        <el-popover trigger="hover" placement="bottom" :width="280">
+          <template #reference>
+            <el-icon class="tips-icon"><QuestionFilled /></el-icon>
+          </template>
+          <div style="font-size: 13px; line-height: 1.8;">
+            <p><b>换算关系：</b></p>
+            <p>1 B = 8 b（字节 = 8 比特）</p>
+            <p>1 KB = {{ base }} B</p>
+            <p>1 MB = {{ base }} KB</p>
+            <p>1 GB = {{ base }} MB ...</p>
+            <p style="margin-top: 8px; color: #909399;">在任意行输入数值，其他行自动联动更新</p>
+          </div>
+        </el-popover>
       </div>
 
       <!-- 快捷预设 -->
@@ -144,42 +169,39 @@ const applyPreset = (preset) => {
       </div>
     </div>
 
-    <!-- 换算结果 -->
+    <!-- 换算列表（每行可输入） -->
     <div class="results-section">
-      <div class="results-header">换算结果</div>
+      <div class="results-header">
+        <span>在各行输入数值，其他行自动联动</span>
+      </div>
       <div class="results-list">
         <div
-          v-for="item in results"
-          :key="item.symbol"
+          v-for="unit in units"
+          :key="unit.symbol"
           class="result-item"
-          :class="{ active: item.symbol === fromUnit }"
-          @click="copyResult(`${item.value} ${item.symbol}`)"
+          :class="{ active: unit.symbol === activeUnit }"
         >
           <div class="result-info">
-            <span class="result-symbol">{{ item.symbol }}</span>
-            <span class="result-name">{{ item.name }}</span>
+            <span class="result-symbol">{{ unit.symbol }}</span>
+            <span class="result-name">{{ unit.name }}</span>
           </div>
-          <div class="result-value">{{ item.value }}</div>
-          <el-icon class="copy-icon"><CopyDocument /></el-icon>
+          <el-input
+            v-model="values[unit.symbol]"
+            :placeholder="unit.symbol === activeUnit ? '输入数值...' : '—'"
+            class="value-input"
+            size="small"
+            @input="onInput(unit.symbol)"
+            @focus="activeUnit = unit.symbol"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values[unit.symbol], unit.symbol)"
+          />
         </div>
       </div>
-    </div>
-
-    <!-- 说明 -->
-    <div class="tips">
-      <el-popover trigger="hover" placement="top" :width="300">
-        <template #reference>
-          <el-icon class="tips-icon"><QuestionFilled /></el-icon>
-        </template>
-        <div style="font-size: 13px; line-height: 1.8;">
-          <p><b>换算关系：</b></p>
-          <p>1 B = 8 b（字节 = 8 比特）</p>
-          <p>1 KB = {{ base }} B</p>
-          <p>1 MB = {{ base }} KB</p>
-          <p>1 GB = {{ base }} MB ...</p>
-          <p style="margin-top: 8px; color: #909399;">点击任意结果行可复制</p>
-        </div>
-      </el-popover>
     </div>
   </div>
 </template>
@@ -193,25 +215,11 @@ const applyPreset = (preset) => {
   gap: 12px;
 }
 
-.input-section {
+.control-section {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.value-input {
-  flex: 1;
-}
-
-.unit-select {
-  width: 160px;
-  flex-shrink: 0;
 }
 
 .base-toggle {
@@ -225,6 +233,16 @@ const applyPreset = (preset) => {
   font-size: 13px;
   color: #606266;
   white-space: nowrap;
+}
+
+.tips-icon {
+  font-size: 16px;
+  color: #c0c4cc;
+  cursor: pointer;
+}
+
+.tips-icon:hover {
+  color: #409eff;
 }
 
 .presets {
@@ -254,9 +272,8 @@ const applyPreset = (preset) => {
 .results-header {
   padding: 8px 14px;
   background: #f5f7fa;
-  font-size: 13px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 12px;
+  color: #909399;
   border-bottom: 1px solid #ebeef5;
   flex-shrink: 0;
 }
@@ -269,11 +286,10 @@ const applyPreset = (preset) => {
 .result-item {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 6px 14px;
   border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background 0.2s;
   gap: 8px;
+  transition: background 0.2s;
 }
 
 .result-item:hover {
@@ -290,14 +306,15 @@ const applyPreset = (preset) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 120px;
+  min-width: 110px;
+  flex-shrink: 0;
 }
 
 .result-symbol {
   font-weight: 600;
   color: #303133;
   font-size: 14px;
-  min-width: 32px;
+  min-width: 28px;
 }
 
 .result-name {
@@ -305,40 +322,24 @@ const applyPreset = (preset) => {
   color: #909399;
 }
 
-.result-value {
+.value-input {
   flex: 1;
+}
+
+.value-input :deep(.el-input__inner) {
   text-align: right;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 13px;
   color: #409eff;
   font-weight: 500;
-  word-break: break-all;
 }
 
-.copy-icon {
-  color: #c0c4cc;
-  font-size: 14px;
+.copy-btn {
   flex-shrink: 0;
-}
-
-.result-item:hover .copy-icon {
-  color: #409eff;
-}
-
-/* 提示 */
-.tips {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-}
-
-.tips-icon {
-  font-size: 18px;
   color: #c0c4cc;
-  cursor: pointer;
 }
 
-.tips-icon:hover {
+.copy-btn:hover {
   color: #409eff;
 }
 </style>

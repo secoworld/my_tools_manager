@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 // 从环境变量读取配置（支持 config.bat 统一配置）
 const FRONTEND_PORT = process.env.FRONTEND_PORT || 5173
-const BACKEND_PORT = process.env.BACKEND_PORT || 8080
+const BACKEND_PORT = process.env.BACKEND_PORT || 8085
 
 // https://vitejs.dev/config/
 export default defineConfig({

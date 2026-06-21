@@ -42,6 +42,22 @@ export const toolRegistry = {
     category: '转换',
     needBackend: false,
     component: defineAsyncComponent(() => import('./StorageConverter.vue'))
+  },
+  'calculator': {
+    id: 'calculator',
+    name: '简单计算器',
+    icon: 'Grid',
+    category: '计算',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./Calculator.vue'))
+  },
+  'base-converter': {
+    id: 'base-converter',
+    name: '进制转换',
+    icon: 'Histogram',
+    category: '转换',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./BaseConverter.vue'))
   }
 }
 

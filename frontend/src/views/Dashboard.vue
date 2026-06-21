@@ -11,6 +11,7 @@ const GRID_ROW_HEIGHT = 100 // 每行 100px
 
 // 布局缓存 key
 const LAYOUT_KEY = 'dashboard-layout'
+const ADD_BTN_KEY = 'dashboard-add-btn'
 
 // 工具默认大小（colSpan × rowSpan）
 const defaultSizes = {
@@ -18,7 +19,9 @@ const defaultSizes = {
   'base64-converter': { colSpan: 6, rowSpan: 3 },
   'timestamp-converter': { colSpan: 4, rowSpan: 2 },
   'text-editor': { colSpan: 4, rowSpan: 4 },
-  'storage-converter': { colSpan: 4, rowSpan: 4 }
+  'storage-converter': { colSpan: 4, rowSpan: 4 },
+  'calculator': { colSpan: 4, rowSpan: 4 },
+  'base-converter': { colSpan: 4, rowSpan: 4 }
 }
 
 // 工具卡片列表
@@ -30,9 +33,14 @@ const resizing = ref(null)
 
 // 拖拽排序状态
 const dragId = ref(null)
+const isDragging = ref(false) // 是否正在拖拽中（用于显示网格虚线和变暗效果）
+
+// ---- "+" 按钮状态 ----
+const addBtnPos = ref({ x: -1, y: -1 }) // -1 表示使用默认位置
+const addBtnSize = ref(56) // 按钮大小
+const addBtnDragging = ref(null) // 拖拽状态
 
 // ---- 布局缓存 ----
-// 保存卡片布局到 localStorage
 const saveLayout = () => {
   try {
     const layout = cards.value.map((c) => ({
@@ -48,7 +56,6 @@ const saveLayout = () => {
   }
 }
 
-// 从 localStorage 恢复卡片布局
 const loadLayout = () => {
   try {
     const saved = localStorage.getItem(LAYOUT_KEY)
@@ -57,7 +64,7 @@ const loadLayout = () => {
       cards.value = layout
         .map((item) => {
           const tool = toolRegistry[item.toolId]
-          if (!tool) return null // 工具已移除，跳过
+          if (!tool) return null
           return {
             id: item.id,
             toolId: item.toolId,
@@ -74,8 +81,30 @@ const loadLayout = () => {
   }
 }
 
-// 监听卡片变化，自动保存布局
+// 保存/恢复 "+" 按钮位置和大小
+const saveAddBtn = () => {
+  try {
+    localStorage.setItem(ADD_BTN_KEY, JSON.stringify({
+      pos: addBtnPos.value,
+      size: addBtnSize.value
+    }))
+  } catch (e) {}
+}
+
+const loadAddBtn = () => {
+  try {
+    const saved = localStorage.getItem(ADD_BTN_KEY)
+    if (saved) {
+      const data = JSON.parse(saved)
+      addBtnPos.value = data.pos || { x: -1, y: -1 }
+      addBtnSize.value = data.size || 56
+    }
+  } catch (e) {}
+}
+
+// 监听变化自动保存
 watch(cards, saveLayout, { deep: true })
+watch([addBtnPos, addBtnSize], saveAddBtn, { deep: true })
 
 // 添加工具
 const addTool = (toolId) => {
@@ -94,14 +123,14 @@ const addTool = (toolId) => {
   showToolPicker.value = false
 }
 
-// 删除工具（同时清除其状态缓存）
+// 删除工具
 const removeCard = (id) => {
   const card = cards.value.find((c) => c.id === id)
   if (card) clearToolState(id)
   cards.value = cards.value.filter((c) => c.id !== id)
 }
 
-// 一键清除仪表盘
+// 一键清除
 const clearDashboard = () => {
   if (cards.value.length === 0) {
     ElMessage.info('仪表盘已是空的')
@@ -113,7 +142,6 @@ const clearDashboard = () => {
     type: 'warning'
   })
     .then(() => {
-      // 清除所有工具状态缓存
       clearAllToolState()
       cards.value = []
       ElMessage.success('仪表盘已清空')
@@ -121,20 +149,25 @@ const clearDashboard = () => {
     .catch(() => {})
 }
 
-// 页面加载时恢复布局
 onMounted(() => {
   loadLayout()
+  loadAddBtn()
 })
 
-// ---- 拖拽排序（HTML5 Drag API，交换卡片顺序）----
+// ---- 拖拽排序（仅标题栏可拖拽）----
 const onDragStart = (e, id) => {
   dragId.value = id
+  isDragging.value = true
   e.dataTransfer.effectAllowed = 'move'
+  // 设置半透明的拖拽影像
+  e.dataTransfer.setDragImage(e.target.closest('.tool-card'), 0, 0)
 }
+
 const onDragOver = (e) => {
   e.preventDefault()
   e.dataTransfer.dropEffect = 'move'
 }
+
 const onDrop = (e, targetId) => {
   e.preventDefault()
   if (dragId.value && dragId.value !== targetId) {
@@ -147,12 +180,15 @@ const onDrop = (e, targetId) => {
     }
   }
   dragId.value = null
-}
-const onDragEnd = () => {
-  dragId.value = null
+  isDragging.value = false
 }
 
-// ---- 调整大小（鼠标拖拽右下角，按格子单位调整）----
+const onDragEnd = () => {
+  dragId.value = null
+  isDragging.value = false
+}
+
+// ---- 调整大小 ----
 const startResize = (e, card) => {
   resizing.value = {
     cardId: card.id,
@@ -186,14 +222,75 @@ const onMouseUp = () => {
   document.removeEventListener('mouseup', onMouseUp)
 }
 
+// ---- "+" 按钮拖拽 ----
+const startAddBtnDrag = (e) => {
+  // 计算初始位置（如果未自定义位置，使用当前默认位置）
+  const btn = e.currentTarget
+  const rect = btn.getBoundingClientRect()
+  const startX = addBtnPos.value.x >= 0 ? addBtnPos.value.x : rect.left
+  const startY = addBtnPos.value.y >= 0 ? addBtnPos.value.y : rect.top
+
+  addBtnDragging.value = {
+    startX,
+    startY,
+    mouseStartX: e.clientX,
+    mouseStartY: e.clientY,
+    moved: false
+  }
+
+  // 初始化位置
+  if (addBtnPos.value.x < 0) {
+    addBtnPos.value = { x: rect.left, y: rect.top }
+  }
+
+  document.addEventListener('mousemove', onAddBtnMouseMove)
+  document.addEventListener('mouseup', onAddBtnMouseUp)
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+const onAddBtnMouseMove = (e) => {
+  if (!addBtnDragging.value) return
+  const dx = e.clientX - addBtnDragging.value.mouseStartX
+  const dy = e.clientY - addBtnDragging.value.mouseStartY
+
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+    addBtnDragging.value.moved = true
+  }
+
+  addBtnPos.value = {
+    x: Math.max(0, Math.min(window.innerWidth - addBtnSize.value, addBtnDragging.value.startX + dx)),
+    y: Math.max(0, Math.min(window.innerHeight - addBtnSize.value, addBtnDragging.value.startY + dy))
+  }
+}
+
+const onAddBtnMouseUp = (e) => {
+  if (addBtnDragging.value && !addBtnDragging.value.moved) {
+    // 没有移动，视为点击 → 打开工具选择
+    showToolPicker.value = true
+  }
+  addBtnDragging.value = null
+  document.removeEventListener('mousemove', onAddBtnMouseMove)
+  document.removeEventListener('mouseup', onAddBtnMouseUp)
+}
+
+// "+" 按钮滚轮缩放
+const onAddBtnWheel = (e) => {
+  e.preventDefault()
+  const delta = e.deltaY > 0 ? -4 : 4
+  addBtnSize.value = Math.max(32, Math.min(80, addBtnSize.value + delta))
+}
+
 onUnmounted(() => {
   document.removeEventListener('mousemove', onMouseMove)
   document.removeEventListener('mouseup', onMouseUp)
+  document.removeEventListener('mousemove', onAddBtnMouseMove)
+  document.removeEventListener('mouseup', onAddBtnMouseUp)
 })
 </script>
 
 <template>
-  <div class="dashboard">
+  <div class="dashboard" :class="{ 'drag-active': isDragging }">
     <!-- 空状态 -->
     <div v-if="cards.length === 0" class="empty-state">
       <el-empty description="点击右下角 + 添加工具到仪表盘">
@@ -213,19 +310,24 @@ onUnmounted(() => {
         v-for="card in cards"
         :key="card.id"
         class="tool-card"
-        :class="{ dragging: dragId === card.id }"
+        :class="{
+          dragging: dragId === card.id,
+          'drag-dimmed': isDragging && dragId !== card.id
+        }"
         :style="{
           gridColumn: `span ${card.colSpan}`,
           gridRow: `span ${card.rowSpan}`
         }"
-        draggable="true"
-        @dragstart="onDragStart($event, card.id)"
         @dragover="onDragOver"
         @drop="onDrop($event, card.id)"
-        @dragend="onDragEnd"
       >
-        <!-- 标题栏（拖拽移动） -->
-        <div class="card-header">
+        <!-- 标题栏（仅标题栏可拖拽） -->
+        <div
+          class="card-header"
+          draggable="true"
+          @dragstart="onDragStart($event, card.id)"
+          @dragend="onDragEnd"
+        >
           <span class="card-title">{{ card.title }}</span>
           <span class="card-size">{{ card.colSpan }}×{{ card.rowSpan }}</span>
           <button class="card-close" @click="removeCard(card.id)">×</button>
@@ -239,8 +341,21 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 浮动添加按钮 -->
-    <div class="add-button" @click="showToolPicker = true">+</div>
+    <!-- 浮动添加按钮（可拖拽移动、滚轮缩放） -->
+    <div
+      class="add-button"
+      :style="{
+        width: addBtnSize + 'px',
+        height: addBtnSize + 'px',
+        fontSize: (addBtnSize * 0.5) + 'px',
+        left: addBtnPos.x >= 0 ? addBtnPos.x + 'px' : 'auto',
+        right: addBtnPos.x >= 0 ? 'auto' : '32px',
+        bottom: addBtnPos.x >= 0 ? 'auto' : '32px',
+        top: addBtnPos.x >= 0 ? addBtnPos.y + 'px' : 'auto'
+      }"
+      @mousedown="startAddBtnDrag"
+      @wheel="onAddBtnWheel"
+    >+</div>
 
     <!-- 工具选择弹窗 -->
     <el-dialog v-model="showToolPicker" title="选择工具" width="420px">
@@ -270,6 +385,16 @@ onUnmounted(() => {
   height: 100%;
   overflow: auto;
   background-color: #f0f2f5;
+  position: relative;
+}
+
+/* 拖拽激活时显示网格虚线背景 */
+.dashboard.drag-active {
+  background-color: #e8eaf0;
+  background-image:
+    linear-gradient(to right, rgba(64, 158, 255, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(64, 158, 255, 0.15) 1px, transparent 1px);
+  background-size: 80px 100px;
 }
 
 .empty-state {
@@ -292,7 +417,7 @@ onUnmounted(() => {
   color: #909399;
 }
 
-/* 网格布局：12 列，每行 100px，dense 瀑布流填充 */
+/* 网格布局 */
 .grid-container {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -312,11 +437,20 @@ onUnmounted(() => {
   overflow: hidden;
   min-width: 0;
   position: relative;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, filter 0.2s;
 }
 
+/* 正在拖拽的卡片：透明度不要太低 */
 .tool-card.dragging {
-  opacity: 0.4;
+  opacity: 0.75;
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.3);
+  border-color: #409eff;
+}
+
+/* 拖拽时其他卡片变暗 */
+.tool-card.drag-dimmed {
+  opacity: 0.35;
+  filter: grayscale(0.5);
 }
 
 .card-header {
@@ -379,28 +513,30 @@ onUnmounted(() => {
   z-index: 10;
 }
 
+/* 浮动添加按钮 */
 .add-button {
   position: fixed;
-  right: 32px;
-  bottom: 32px;
-  width: 56px;
-  height: 56px;
   border-radius: 50%;
   background: #409eff;
   color: #fff;
-  font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: grab;
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
-  z-index: 100;
-  transition: transform 0.2s;
+  z-index: 1000;
+  transition: transform 0.15s, box-shadow 0.15s;
   user-select: none;
 }
 
 .add-button:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.5);
+}
+
+.add-button:active {
+  cursor: grabbing;
+  transform: scale(0.95);
 }
 
 .tool-picker-list {

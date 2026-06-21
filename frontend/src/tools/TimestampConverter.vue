@@ -1,75 +1,108 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
-import { executeTool } from '../api'
+import { QuestionFilled, CopyDocument, Clock } from '@element-plus/icons-vue'
 import { useToolState } from '../composables/useToolState'
 
 const props = defineProps({
-  instanceId: {
-    type: String,
-    required: true
-  }
+  instanceId: { type: String, required: true }
 })
 
-const inputValue = ref('')
-const action = ref('date-to-timestamp') // date-to-timestamp | timestamp-to-date
-const loading = ref(false)
+// 三个输入位的值
+const values = reactive({
+  date: '',
+  seconds: '',
+  millis: ''
+})
 
-// 结果
-const resultSeconds = ref('')
-const resultMillis = ref('')
-const resultDate = ref('')
+// 当前正在编辑的字段
+const activeField = ref('date')
 
-// 状态持久化（刷新页面后输入内容和结果不丢失）
-useToolState(props.instanceId, { inputValue, action, resultSeconds, resultMillis, resultDate })
+// 状态持久化
+useToolState(props.instanceId, { values, activeField })
 
-// 转换
-const convert = async () => {
-  if (!inputValue.value.trim()) {
-    ElMessage.warning('请输入要转换的值')
+// 日期格式化为 YYYY-MM-DD HH:mm:ss.SSS
+const formatDate = (date) => {
+  const pad = (n, len = 2) => String(n).padStart(len, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
+}
+
+// 解析日期字符串
+const parseDate = (str) => {
+  const trimmed = str.trim()
+  if (!trimmed) return null
+  // 支持 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss
+  const date = new Date(trimmed.replace(/-/g, '/'))
+  if (isNaN(date.getTime())) return null
+  return date
+}
+
+// 当某个输入框变化时，更新其他输入框
+const onInput = (field) => {
+  activeField.value = field
+  const raw = values[field].trim()
+  if (!raw) {
+    // 输入为空，清空其他
+    Object.keys(values).forEach(k => {
+      if (k !== field) values[k] = ''
+    })
     return
   }
-  loading.value = true
-  try {
-    const result = await executeTool('timestamp-converter', {
-      action: action.value,
-      value: inputValue.value
-    })
-    // result 是后端返回的 ToolResult 对象 { success, data, message }
-    const data = result.data
-    if (action.value === 'date-to-timestamp') {
-      resultSeconds.value = String(data.seconds)
-      resultMillis.value = String(data.milliseconds)
-      resultDate.value = ''
-    } else {
-      resultDate.value = typeof data === 'string' ? data : String(data)
-      resultSeconds.value = ''
-      resultMillis.value = ''
-    }
-    ElMessage.success('转换成功')
-  } catch (error) {
-    ElMessage.error('转换失败: ' + (error.message || '未知错误'))
-  } finally {
-    loading.value = false
+
+  if (field === 'date') {
+    // 日期 → 秒 + 毫秒
+    const date = parseDate(raw)
+    if (!date) return
+    const ms = date.getTime()
+    values.seconds = String(Math.floor(ms / 1000))
+    values.millis = String(ms)
+  } else if (field === 'seconds') {
+    // 秒 → 日期 + 毫秒
+    const sec = parseInt(raw)
+    if (isNaN(sec)) return
+    const ms = sec * 1000
+    values.date = formatDate(new Date(ms))
+    values.millis = String(ms)
+  } else if (field === 'millis') {
+    // 毫秒 → 日期 + 秒
+    const ms = parseInt(raw)
+    if (isNaN(ms)) return
+    values.date = formatDate(new Date(ms))
+    values.seconds = String(Math.floor(ms / 1000))
   }
+}
+
+// 初始化为当前时间
+const fillNow = () => {
+  const now = new Date()
+  values.date = formatDate(now)
+  values.seconds = String(Math.floor(now.getTime() / 1000))
+  values.millis = String(now.getTime())
+  activeField.value = 'date'
+}
+
+// 如果所有字段都为空，自动填充当前时间
+if (!values.date && !values.seconds && !values.millis) {
+  fillNow()
+} else {
+  // 恢复后触发一次联动
+  onInput(activeField.value)
 }
 
 // 清空
 const clearAll = () => {
-  inputValue.value = ''
-  resultSeconds.value = ''
-  resultMillis.value = ''
-  resultDate.value = ''
+  values.date = ''
+  values.seconds = ''
+  values.millis = ''
 }
 
-// 复制结果
-const copyResult = async (text) => {
-  if (!text) return
+// 复制
+const copyResult = async (text, label) => {
+  if (!text) { ElMessage.warning('没有可复制的内容'); return }
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制到剪贴板')
-  } catch (e) {
+    ElMessage.success(`已复制${label}: ${text}`)
+  } catch {
     ElMessage.error('复制失败')
   }
 }
@@ -77,67 +110,100 @@ const copyResult = async (text) => {
 
 <template>
   <div class="timestamp-converter">
-    <div class="toolbar">
-      <el-radio-group v-model="action">
-        <el-radio value="date-to-timestamp">日期转时间戳</el-radio>
-        <el-radio value="timestamp-to-date">时间戳转日期</el-radio>
-      </el-radio-group>
-      <el-button type="primary" :loading="loading" @click="convert">转换</el-button>
-      <el-button type="info" @click="clearAll">清空</el-button>
+    <!-- 顶部控制区 -->
+    <div class="control-section">
+      <el-button type="primary" :icon="Clock" size="small" @click="fillNow">当前时间</el-button>
+      <el-button type="info" size="small" @click="clearAll">清空</el-button>
       <el-popover
         placement="bottom"
-        title="使用提示"
-        :width="280"
+        :width="300"
         trigger="hover"
-        :content="'日期转时间戳：输入格式如 2024-01-01 12:00:00 或 2024-01-01，将同时显示秒级和毫秒级时间戳。时间戳转日期：输入秒级(10位)或毫秒级(13位)时间戳，自动识别。'"
       >
         <template #reference>
-          <el-button class="tips-btn" circle size="small">
-            <el-icon><QuestionFilled /></el-icon>
-          </el-button>
+          <el-icon class="tips-icon"><QuestionFilled /></el-icon>
         </template>
+        <div style="font-size: 13px; line-height: 1.8;">
+          <p style="font-weight: bold;">使用说明</p>
+          <p>在任意行输入数值，其他行自动联动更新：</p>
+          <p>• <b>日期</b>：格式如 2024-01-01 12:00:00.000 或 2024-01-01</p>
+          <p>• <b>秒(s)</b>：10位数字，如 1704067200</p>
+          <p>• <b>毫秒(ms)</b>：13位数字，如 1704067200000</p>
+          <p style="color: #999; margin-top: 6px;">点击"当前时间"可快速填入此刻</p>
+        </div>
       </el-popover>
     </div>
-    <div class="content">
-      <div class="input-area">
-        <div class="label">
-          {{ action === 'date-to-timestamp' ? '输入日期 (如 2024-01-01 12:00:00)' : '输入时间戳 (如 1704067200 或 1704067200000)' }}
-        </div>
-        <el-input
-          v-model="inputValue"
-          placeholder="请输入要转换的值"
-        />
+
+    <!-- 联动输入列表 -->
+    <div class="results-section">
+      <div class="results-header">
+        <span>在任意行输入，其他行自动联动更新</span>
       </div>
-      <div class="output-area">
-        <!-- 日期转时间戳：同时展示秒和毫秒 -->
-        <template v-if="action === 'date-to-timestamp'">
-          <div class="label">输出结果</div>
-          <div class="result-row">
-            <div class="result-label">秒 (s)</div>
-            <el-input :model-value="resultSeconds" readonly placeholder="秒级时间戳">
-              <template #append>
-                <el-button @click="copyResult(resultSeconds)">复制</el-button>
-              </template>
-            </el-input>
+      <div class="results-list">
+        <!-- 日期 -->
+        <div class="result-item" :class="{ active: activeField === 'date' }">
+          <div class="result-info">
+            <span class="result-label">日期</span>
+            <span class="result-hint">YYYY-MM-DD HH:mm:ss.SSS</span>
           </div>
-          <div class="result-row">
-            <div class="result-label">毫秒 (ms)</div>
-            <el-input :model-value="resultMillis" readonly placeholder="毫秒级时间戳">
-              <template #append>
-                <el-button @click="copyResult(resultMillis)">复制</el-button>
-              </template>
-            </el-input>
+          <el-input
+            v-model="values.date"
+            placeholder="输入日期..."
+            class="value-input"
+            @input="onInput('date')"
+            @focus="activeField = 'date'"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values.date, '日期')"
+          />
+        </div>
+
+        <!-- 秒 -->
+        <div class="result-item" :class="{ active: activeField === 'seconds' }">
+          <div class="result-info">
+            <span class="result-label">秒 (s)</span>
+            <span class="result-hint">10位时间戳</span>
           </div>
-        </template>
-        <!-- 时间戳转日期 -->
-        <template v-else>
-          <div class="label">输出结果</div>
-          <el-input :model-value="resultDate" readonly placeholder="转换结果将显示在这里">
-            <template #append>
-              <el-button @click="copyResult(resultDate)">复制</el-button>
-            </template>
-          </el-input>
-        </template>
+          <el-input
+            v-model="values.seconds"
+            placeholder="输入秒级时间戳..."
+            class="value-input"
+            @input="onInput('seconds')"
+            @focus="activeField = 'seconds'"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values.seconds, '秒')"
+          />
+        </div>
+
+        <!-- 毫秒 -->
+        <div class="result-item" :class="{ active: activeField === 'millis' }">
+          <div class="result-info">
+            <span class="result-label">毫秒 (ms)</span>
+            <span class="result-hint">13位时间戳</span>
+          </div>
+          <el-input
+            v-model="values.millis"
+            placeholder="输入毫秒级时间戳..."
+            class="value-input"
+            @input="onInput('millis')"
+            @focus="activeField = 'millis'"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values.millis, '毫秒')"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -149,50 +215,113 @@ const copyResult = async (text) => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
-.toolbar {
-  margin-bottom: 16px;
+.control-section {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.content {
+.tips-icon {
+  font-size: 16px;
+  color: #c0c4cc;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.tips-icon:hover {
+  color: #409eff;
+}
+
+/* 结果区 */
+.results-section {
   flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-direction: column;
   min-height: 0;
-  margin-bottom: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.input-area,
-.output-area {
-  flex: 1 1 280px;
-  min-width: 0;
+.results-header {
+  padding: 8px 14px;
+  background: #f5f7fa;
+  font-size: 12px;
+  color: #909399;
+  border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
+}
+
+.results-list {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  padding: 12px;
 }
 
-.label {
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #606266;
+.result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  transition: all 0.2s;
 }
 
-.result-row {
-  margin-bottom: 12px;
+.result-item:hover {
+  background: #ecf5ff;
+  border-color: #c6e2ff;
+}
+
+.result-item.active {
+  background: #ecf5ff;
+  border-color: #409eff;
+  border-left: 3px solid #409eff;
+}
+
+.result-info {
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
 .result-label {
-  margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.result-hint {
+  font-size: 11px;
   color: #909399;
 }
 
-.tips-btn {
-  margin-left: auto;
+.value-input {
+  flex: 1;
+}
+
+.value-input :deep(.el-input__inner) {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: #409eff;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  color: #c0c4cc;
+}
+
+.copy-btn:hover {
+  color: #409eff;
 }
 </style>
