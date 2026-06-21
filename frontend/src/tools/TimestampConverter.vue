@@ -8,9 +8,11 @@ const props = defineProps({
   instanceId: { type: String, required: true }
 })
 
-// 三个输入位的值
+// 五个输入位的值
 const values = reactive({
   date: '',
+  utc: '',
+  cst: '',
   seconds: '',
   millis: ''
 })
@@ -21,18 +23,49 @@ const activeField = ref('date')
 // 状态持久化
 useToolState(props.instanceId, { values, activeField })
 
-// 日期格式化为 YYYY-MM-DD HH:mm:ss.SSS
+// 本地日期格式化为 YYYY-MM-DD HH:mm:ss.SSS
 const formatDate = (date) => {
   const pad = (n, len = 2) => String(n).padStart(len, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
 }
 
-// 解析日期字符串
+// UTC 格式化为 ISO 8601: 2024-01-01T04:00:00.000Z
+const formatUTC = (date) => {
+  const pad = (n, len = 2) => String(n).padStart(len, '0')
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}.${pad(date.getUTCMilliseconds(), 3)}Z`
+}
+
+// CST 中国标准时间(UTC+8) 格式化: 2024-01-01 12:00:00.000 CST
+const formatCST = (date) => {
+  const utc8 = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+  const pad = (n, len = 2) => String(n).padStart(len, '0')
+  return `${utc8.getUTCFullYear()}-${pad(utc8.getUTCMonth() + 1)}-${pad(utc8.getUTCDate())} ${pad(utc8.getUTCHours())}:${pad(utc8.getUTCMinutes())}:${pad(utc8.getUTCSeconds())}.${pad(utc8.getUTCMilliseconds(), 3)} CST`
+}
+
+// 解析本地日期字符串
 const parseDate = (str) => {
   const trimmed = str.trim()
   if (!trimmed) return null
-  // 支持 YYYY-MM-DD 或 YYYY-MM-DD HH:mm:ss
   const date = new Date(trimmed.replace(/-/g, '/'))
+  if (isNaN(date.getTime())) return null
+  return date
+}
+
+// 解析 UTC 字符串
+const parseUTC = (str) => {
+  const trimmed = str.trim()
+  if (!trimmed) return null
+  const date = new Date(trimmed)
+  if (isNaN(date.getTime())) return null
+  return date
+}
+
+// 解析 CST 字符串（UTC+8）
+const parseCST = (str) => {
+  const trimmed = str.trim()
+  if (!trimmed) return null
+  const cleanStr = trimmed.replace(/CST\s*$/i, '').trim()
+  const date = new Date(cleanStr + '+08:00')
   if (isNaN(date.getTime())) return null
   return date
 }
@@ -49,40 +82,45 @@ const onInput = (field) => {
     return
   }
 
+  let date = null
   if (field === 'date') {
-    // 日期 → 秒 + 毫秒
-    const date = parseDate(raw)
-    if (!date) return
-    const ms = date.getTime()
-    values.seconds = String(Math.floor(ms / 1000))
-    values.millis = String(ms)
+    date = parseDate(raw)
+  } else if (field === 'utc') {
+    date = parseUTC(raw)
+  } else if (field === 'cst') {
+    date = parseCST(raw)
   } else if (field === 'seconds') {
-    // 秒 → 日期 + 毫秒
     const sec = parseInt(raw)
     if (isNaN(sec)) return
-    const ms = sec * 1000
-    values.date = formatDate(new Date(ms))
-    values.millis = String(ms)
+    date = new Date(sec * 1000)
   } else if (field === 'millis') {
-    // 毫秒 → 日期 + 秒
     const ms = parseInt(raw)
     if (isNaN(ms)) return
-    values.date = formatDate(new Date(ms))
-    values.seconds = String(Math.floor(ms / 1000))
+    date = new Date(ms)
   }
+
+  if (!date) return
+  const ms = date.getTime()
+  values.date = formatDate(date)
+  values.utc = formatUTC(date)
+  values.cst = formatCST(date)
+  values.seconds = String(Math.floor(ms / 1000))
+  values.millis = String(ms)
 }
 
 // 初始化为当前时间
 const fillNow = () => {
   const now = new Date()
   values.date = formatDate(now)
+  values.utc = formatUTC(now)
+  values.cst = formatCST(now)
   values.seconds = String(Math.floor(now.getTime() / 1000))
   values.millis = String(now.getTime())
   activeField.value = 'date'
 }
 
 // 如果所有字段都为空，自动填充当前时间
-if (!values.date && !values.seconds && !values.millis) {
+if (!values.date && !values.seconds && !values.millis && !values.utc && !values.cst) {
   fillNow()
 } else {
   // 恢复后触发一次联动
@@ -92,6 +130,8 @@ if (!values.date && !values.seconds && !values.millis) {
 // 清空
 const clearAll = () => {
   values.date = ''
+  values.utc = ''
+  values.cst = ''
   values.seconds = ''
   values.millis = ''
 }
@@ -142,7 +182,7 @@ const copyResult = async (text, label) => {
         <!-- 日期 -->
         <div class="result-item" :class="{ active: activeField === 'date' }">
           <div class="result-info">
-            <span class="result-label">日期</span>
+            <span class="result-label">本地日期</span>
             <span class="result-hint">YYYY-MM-DD HH:mm:ss.SSS</span>
           </div>
           <el-input
@@ -158,6 +198,50 @@ const copyResult = async (text, label) => {
             :icon="CopyDocument"
             class="copy-btn"
             @click="copyResult(values.date, '日期')"
+          />
+        </div>
+
+        <!-- UTC -->
+        <div class="result-item" :class="{ active: activeField === 'utc' }">
+          <div class="result-info">
+            <span class="result-label">UTC</span>
+            <span class="result-hint">ISO 8601 (Z)</span>
+          </div>
+          <el-input
+            v-model="values.utc"
+            placeholder="输入UTC时间..."
+            class="value-input"
+            @input="onInput('utc')"
+            @focus="activeField = 'utc'"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values.utc, 'UTC')"
+          />
+        </div>
+
+        <!-- CST -->
+        <div class="result-item" :class="{ active: activeField === 'cst' }">
+          <div class="result-info">
+            <span class="result-label">CST 中国时间</span>
+            <span class="result-hint">UTC+8</span>
+          </div>
+          <el-input
+            v-model="values.cst"
+            placeholder="输入CST时间..."
+            class="value-input"
+            @input="onInput('cst')"
+            @focus="activeField = 'cst'"
+          />
+          <el-button
+            size="small"
+            text
+            :icon="CopyDocument"
+            class="copy-btn"
+            @click="copyResult(values.cst, 'CST')"
           />
         </div>
 

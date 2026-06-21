@@ -5,6 +5,7 @@ import { Upload, Delete, Switch } from '@element-plus/icons-vue'
 import { useToolState } from '../composables/useToolState'
 import { useZoomFullscreen } from '../composables/useZoomFullscreen'
 import { useSplitter } from '../composables/useSplitter'
+import LineNumberTextarea from '../components/LineNumberTextarea.vue'
 
 const props = defineProps({
   instanceId: { type: String, required: true }
@@ -14,6 +15,9 @@ const props = defineProps({
 const leftText = ref('')
 const rightText = ref('')
 
+// 显示行号
+const showLineNumbers = ref(false)
+
 // 选项
 const ignoreCase = ref(false)
 const ignoreWhitespace = ref(false)
@@ -22,7 +26,7 @@ const onlyDiff = ref(false) // 只显示差异部分
 const contextLines = ref(3) // 差异上下文行数（onlyDiff 为 true 时生效）
 
 // 状态持久化
-useToolState(props.instanceId, { leftText, rightText, ignoreCase, ignoreWhitespace, ignoreEmptyLines, onlyDiff, contextLines })
+useToolState(props.instanceId, { leftText, rightText, ignoreCase, ignoreWhitespace, ignoreEmptyLines, onlyDiff, contextLines, showLineNumbers })
 
 // 缩放和全屏
 const { fontSize, zoomIn, zoomOut, toggleFullscreen, exitFullscreen, isFullscreen } = useZoomFullscreen()
@@ -259,6 +263,8 @@ const copyResult = () => {
         <el-checkbox v-model="ignoreCase" size="small">忽略大小写</el-checkbox>
         <el-checkbox v-model="ignoreWhitespace" size="small">忽略空白</el-checkbox>
         <el-checkbox v-model="ignoreEmptyLines" size="small">忽略空行</el-checkbox>
+        <el-divider direction="vertical" />
+        <el-checkbox v-model="showLineNumbers" size="small">显示行号</el-checkbox>
       </div>
       <div class="actions">
         <el-button size="small" :icon="Switch" @click="swap" title="交换左右">交换</el-button>
@@ -281,13 +287,12 @@ const copyResult = () => {
             <el-button size="small" text @click="openInputDialog" title="放大输入区">🔍</el-button>
           </div>
         </div>
-        <el-input
+        <LineNumberTextarea
           v-model="leftText"
-          type="textarea"
-          :resize="'none'"
+          :show-line-numbers="showLineNumbers"
+          :font-size="fontSize"
           placeholder="粘贴或输入文本 A..."
           class="text-area"
-          :style="{ fontSize: fontSize + 'px' }"
         />
       </div>
 
@@ -308,13 +313,12 @@ const copyResult = () => {
             <el-button size="small" text @click="openInputDialog" title="放大输入区">🔍</el-button>
           </div>
         </div>
-        <el-input
+        <LineNumberTextarea
           v-model="rightText"
-          type="textarea"
-          :resize="'none'"
+          :show-line-numbers="showLineNumbers"
+          :font-size="fontSize"
           placeholder="粘贴或输入文本 B..."
           class="text-area"
-          :style="{ fontSize: fontSize + 'px' }"
         />
       </div>
     </div>
@@ -412,13 +416,12 @@ const copyResult = () => {
                 <input type="file" accept=".txt,.md,.json,.js,.ts,.vue,.java,.py,.xml,.yml,.yaml,.csv,.log" @change="onFileUpload('left', $event)" hidden />
               </label>
             </div>
-            <el-input
+            <LineNumberTextarea
               v-model="leftText"
-              type="textarea"
-              :resize="'none'"
+              :show-line-numbers="showLineNumbers"
+              :font-size="fontSize"
               placeholder="粘贴或输入文本 A..."
               class="text-area"
-              :style="{ fontSize: fontSize + 'px' }"
             />
           </div>
           <div class="splitter" @mousedown="startDrag($event, containerRef, false)">
@@ -433,13 +436,12 @@ const copyResult = () => {
                 <input type="file" accept=".txt,.md,.json,.js,.ts,.vue,.java,.py,.xml,.yml,.yaml,.csv,.log" @change="onFileUpload('right', $event)" hidden />
               </label>
             </div>
-            <el-input
+            <LineNumberTextarea
               v-model="rightText"
-              type="textarea"
-              :resize="'none'"
+              :show-line-numbers="showLineNumbers"
+              :font-size="fontSize"
               placeholder="粘贴或输入文本 B..."
               class="text-area"
-              :style="{ fontSize: fontSize + 'px' }"
             />
           </div>
         </div>
