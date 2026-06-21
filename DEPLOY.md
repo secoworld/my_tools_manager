@@ -133,7 +133,7 @@ docker compose -f docker-compose.prod.yml up -d
 1. 进入 **网站 → 网站 → 创建网站**
 2. 选择 **反向代理**
 3. 主域名：`tools.yourdomain.com`
-4. 代理地址：`http://127.0.0.1:8080`
+4. 代理地址：`http://127.0.0.1:8085`
 5. 保存
 
 ### 方式 D：配置 SSL 证书
@@ -196,7 +196,7 @@ ufw status
 docker logs tools-manager
 
 # 检查端口占用
-ss -tlnp | grep 8080
+ss -tlnp | grep 8085
 
 # 手动重启
 cd /opt/tools-manager

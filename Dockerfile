@@ -1,7 +1,7 @@
 # ============================================================
 #   Tools Manager Dockerfile (多阶段构建)
 #   构建: docker build -t tools-manager .
-#   运行: docker run -p 8080:8080 tools-manager
+#   运行: docker run -p 8085:8085 tools-manager
 # ============================================================
 
 # ---- 阶段 1: 构建前端 ----
@@ -33,7 +33,7 @@ LABEL description="开发者工具管理框架"
 # 复制构建好的 JAR
 COPY --from=backend-builder /app/backend/target/*.jar app.jar
 # 暴露端口
-EXPOSE 8080
+EXPOSE 8085
 # JVM 参数 (可通过环境变量调整)
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 # 启动

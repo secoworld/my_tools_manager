@@ -143,7 +143,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-后端启动于 `http://localhost:8080`，使用内嵌 H2 数据库，无需额外安装。
+后端启动于 `http://localhost:8085`，使用内嵌 H2 数据库，无需额外安装。
 
 #### 2. 启动前端
 
