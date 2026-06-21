@@ -34,6 +34,14 @@ export const toolRegistry = {
     category: '记录',
     needBackend: false,
     component: defineAsyncComponent(() => import('./TextEditor.vue'))
+  },
+  'storage-converter': {
+    id: 'storage-converter',
+    name: '存储单位换算',
+    icon: 'Coin',
+    category: '转换',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./StorageConverter.vue'))
   }
 }
 

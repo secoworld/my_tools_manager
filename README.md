@@ -1,4 +1,4 @@
-# ⚡ Tools Manager — 开发者工具宇宙
+# ⚡ Tools Manager — 开发者工具
 
 > 一个可扩展的、支持多窗口并行的开发者工具管理框架。像搭积木一样组装你的工具箱，让效率触手可及。
 
@@ -94,6 +94,10 @@ tools_manager/
 │
 ├── DESIGN.md                           # 框架设计文档
 ├── showcase.html                       # 创意展示页面（Trae 创意大赛）
+├── config.bat / config.sh              # 项目配置文件（Windows / Linux）
+├── start.bat / start.sh                # 一键启动脚本（Windows / Linux）
+├── Dockerfile                          # Docker 多阶段构建
+├── docker-compose.yml                  # Docker Compose 编排
 ├── .gitignore
 └── README.md
 ```
@@ -109,7 +113,30 @@ tools_manager/
 - **Node.js** 16+
 - **npm** 8+
 
-### 1. 启动后端
+### 方式一：一键启动脚本（推荐）
+
+#### Windows
+
+1. 编辑 `config.bat`，确认 `JAVA_HOME` 和 `MAVEN_HOME` 路径正确
+2. 双击 `start.bat`
+
+#### Linux
+
+```bash
+# 编辑配置
+vi config.sh
+# 修改 JAVA_HOME 等路径
+
+# 赋予执行权限并运行
+chmod +x start.sh
+./start.sh
+```
+
+脚本会自动：检查环境 → 安装前端依赖（首次）→ 启动后端 → 等待就绪 → 启动前端 → 打开浏览器
+
+### 方式二：手动启动
+
+#### 1. 启动后端
 
 ```bash
 cd backend
@@ -118,7 +145,7 @@ mvn spring-boot:run
 
 后端启动于 `http://localhost:8080`，使用内嵌 H2 数据库，无需额外安装。
 
-### 2. 启动前端
+#### 2. 启动前端
 
 ```bash
 cd frontend
@@ -128,7 +155,7 @@ npm run dev
 
 前端启动于 `http://localhost:5173`。
 
-### 3. 访问应用
+#### 3. 访问应用
 
 浏览器打开 `http://localhost:5173` 即可使用。
 

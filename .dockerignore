@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# 构建产物
+backend/target
+frontend/dist
+frontend/node_modules
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 文档 (不需要打入镜像)
+README.md
+DESIGN.md
+showcase.html
+
+# 启动脚本 (容器内不需要)
+start.bat
+start.sh
+config.bat
+config.sh
+
+# Docker 自身
+Dockerfile
+docker-compose.yml
+.dockerignore

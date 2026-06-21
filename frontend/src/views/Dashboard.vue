@@ -17,7 +17,8 @@ const defaultSizes = {
   'json-formatter': { colSpan: 6, rowSpan: 3 },
   'base64-converter': { colSpan: 6, rowSpan: 3 },
   'timestamp-converter': { colSpan: 4, rowSpan: 2 },
-  'text-editor': { colSpan: 4, rowSpan: 4 }
+  'text-editor': { colSpan: 4, rowSpan: 4 },
+  'storage-converter': { colSpan: 4, rowSpan: 4 }
 }
 
 // 工具卡片列表
