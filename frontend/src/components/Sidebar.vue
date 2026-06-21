@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { Document, Lock, Clock } from '@element-plus/icons-vue'
+import { Document, Lock, Clock, EditPen, Coin, Grid, Histogram, Connection, DocumentCopy, Files } from '@element-plus/icons-vue'
 import { useWindowManagerStore } from '../stores/windowManager'
 import { getToolList } from '../tools/registry'
 
@@ -10,7 +10,14 @@ const windowManager = useWindowManagerStore()
 const iconMap = {
   Document,
   Lock,
-  Clock
+  Clock,
+  EditPen,
+  Coin,
+  Grid,
+  Histogram,
+  Connection,
+  DocumentCopy,
+  Files
 }
 
 // 按 category 分组的工具列表

@@ -15,6 +15,7 @@
     --neon-pink: #ff4e8e;
     --neon-green: #4eff9f;
     --neon-yellow: #ffd84e;
+    --neon-orange: #ff8e4e;
     --text-primary: #e8ecf5;
     --text-secondary: #8b95b5;
     --border-glow: rgba(0, 240, 255, 0.2);
@@ -271,7 +272,59 @@
   }
   .stat-label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
 
-  /* ============ 功能特性 ============ */
+  /* ============ 工具卡片网格 ============ */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .tool-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-glow);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(20px);
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gradient-main);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s;
+  }
+  .tool-card:hover { transform: translateY(-6px); background: var(--bg-card-hover); }
+  .tool-card:hover::before { transform: scaleX(1); }
+  .tool-icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+    background: var(--gradient-card);
+    border: 1px solid var(--border-glow);
+  }
+  .tool-card h3 { font-size: 17px; margin-bottom: 8px; }
+  .tool-card .tool-category {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: rgba(0,240,255,0.1);
+    color: var(--neon-cyan);
+    margin-bottom: 10px;
+  }
+  .tool-card p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ============ 核心特性 ============ */
   .features-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -322,10 +375,10 @@
     flex-wrap: wrap;
   }
   .demo-tab {
-    padding: 10px 24px;
+    padding: 10px 20px;
     border-radius: 10px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     border: 1px solid var(--border-glow);
     background: var(--bg-card);
@@ -362,7 +415,7 @@
   }
   .demo-textarea {
     width: 100%;
-    min-height: 160px;
+    min-height: 140px;
     background: rgba(0,0,0,0.3);
     border: 1px solid var(--border-glow);
     border-radius: 10px;
@@ -405,18 +458,78 @@
     border: 1px solid var(--border-glow);
     border-radius: 10px;
     padding: 14px;
-    min-height: 60px;
+    min-height: 50px;
     font-family: 'Consolas','Monaco',monospace;
     font-size: 13px;
     color: var(--neon-green);
     word-break: break-all;
   }
-  .demo-radio { display: flex; gap: 16px; margin-bottom: 14px; }
+  .demo-radio { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
   .demo-radio label {
     display: flex; align-items: center; gap: 6px;
     cursor: pointer; font-size: 14px; color: var(--text-secondary);
   }
   .demo-radio input { accent-color: var(--neon-cyan); }
+
+  /* 多输入位联动样式 */
+  .linkage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .linkage-item {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .linkage-item-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .linkage-item input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--neon-cyan);
+    font-family: 'Consolas','Monaco',monospace;
+    font-size: 14px;
+    outline: none;
+  }
+
+  /* 计算器样式 */
+  .calc-display {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    text-align: right;
+    font-family: 'Consolas','Monaco',monospace;
+  }
+  .calc-expr { font-size: 12px; color: var(--text-secondary); min-height: 18px; }
+  .calc-result { font-size: 28px; color: var(--neon-cyan); font-weight: 700; }
+  .calc-keys {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .calc-key {
+    padding: 14px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-glow);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .calc-key:hover { background: rgba(0,240,255,0.15); }
+  .calc-key.op { color: var(--neon-purple); }
+  .calc-key.eq { background: var(--gradient-main); color: #fff; border-color: transparent; }
+  .calc-key.clear { color: var(--neon-pink); }
+  .calc-key.wide { grid-column: span 2; }
 
   /* ============ 仪表盘预览 ============ */
   .dashboard-preview {
@@ -454,9 +567,13 @@
     color: var(--text-secondary); cursor: pointer; font-size: 16px;
   }
   .dash-card-body { flex: 1; font-size: 11px; color: var(--text-secondary); font-family: monospace; overflow: hidden; }
-  .dash-card.json { grid-column: span 6; grid-row: span 3; }
-  .dash-card.base64 { grid-column: span 6; grid-row: span 3; }
+  .dash-card.json { grid-column: span 4; grid-row: span 4; }
+  .dash-card.base64 { grid-column: span 4; grid-row: span 4; }
   .dash-card.timestamp { grid-column: span 4; grid-row: span 2; }
+  .dash-card.storage { grid-column: span 4; grid-row: span 2; }
+  .dash-card.base { grid-column: span 4; grid-row: span 2; }
+  .dash-card.calc { grid-column: span 4; grid-row: span 2; }
+  .dash-card.text { grid-column: span 8; grid-row: span 2; }
   .dash-card.add {
     grid-column: span 4; grid-row: span 2;
     display: flex; align-items: center; justify-content: center;
@@ -568,11 +685,12 @@
     .hero h1 .highlight { font-size: 56px; }
     .section-title { font-size: 32px; }
     .features-grid { grid-template-columns: 1fr; }
+    .tools-grid { grid-template-columns: repeat(2, 1fr); }
     .stats { grid-template-columns: repeat(2, 1fr); }
     .tech-grid { grid-template-columns: repeat(3, 1fr); }
     .nav-links { display: none; }
-    .dash-card.json, .dash-card.base64 { grid-column: span 12; }
-    .dash-card.timestamp, .dash-card.add { grid-column: span 6; }
+    .dash-card.json, .dash-card.base64, .dash-card.text { grid-column: span 12; }
+    .dash-card.timestamp, .dash-card.storage, .dash-card.base, .dash-card.calc, .dash-card.add { grid-column: span 6; }
   }
 
   /* 滚动渐入 */
@@ -595,6 +713,7 @@
   <div class="container">
     <div class="nav-logo">⚡ Tools Manager</div>
     <div class="nav-links">
+      <a href="#tools">工具集</a>
       <a href="#features">核心特性</a>
       <a href="#demo">在线体验</a>
       <a href="#dashboard">仪表盘</a>
@@ -610,9 +729,9 @@
     <div class="float-icon" style="top:15%;left:10%;animation-delay:0s">📄</div>
     <div class="float-icon" style="top:25%;right:12%;animation-delay:-2s">🔐</div>
     <div class="float-icon" style="bottom:20%;left:15%;animation-delay:-4s">⏰</div>
-    <div class="float-icon" style="bottom:30%;right:10%;animation-delay:-1s">🧩</div>
-    <div class="float-icon" style="top:40%;left:5%;animation-delay:-3s">⚡</div>
-    <div class="float-icon" style="top:60%;right:6%;animation-delay:-5s">🔧</div>
+    <div class="float-icon" style="bottom:30%;right:10%;animation-delay:-1s">🧮</div>
+    <div class="float-icon" style="top:40%;left:5%;animation-delay:-3s">💾</div>
+    <div class="float-icon" style="top:60%;right:6%;animation-delay:-5s">🔢</div>
   </div>
   <div class="container hero-content">
     <div class="hero-badge">🚀 Trae 创意大赛参赛作品</div>
@@ -620,10 +739,10 @@
       开发者工具宇宙
       <span class="highlight">Tools Manager</span>
     </h1>
-    <p>一个可扩展的、支持多窗口的、自带命令库的开发者工具管理框架。像搭积木一样组装你的工具箱，让效率触手可及。</p>
+    <p>一个可扩展的、支持多窗口的、自带命令库的开发者工具管理框架。7 大内置工具，像搭积木一样组装你的工具箱。</p>
     <div class="hero-actions">
       <a href="#demo" class="btn btn-primary">🎮 立即体验</a>
-      <a href="#features" class="btn btn-ghost">了解更多 →</a>
+      <a href="#tools" class="btn btn-ghost">查看工具集 →</a>
     </div>
   </div>
 </section>
@@ -633,7 +752,7 @@
   <div class="container">
     <div class="stats reveal">
       <div class="stat-card">
-        <div class="stat-num">3+</div>
+        <div class="stat-num">7</div>
         <div class="stat-label">内置工具</div>
       </div>
       <div class="stat-card">
@@ -647,6 +766,67 @@
       <div class="stat-card">
         <div class="stat-num">100%</div>
         <div class="stat-label">开源可定制</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 工具集 -->
+<section id="tools">
+  <div class="container">
+    <div class="reveal">
+      <span class="section-tag">Tool Collection</span>
+      <h2 class="section-title">7 大内置工具</h2>
+      <p class="section-desc">覆盖格式化、编码、转换、计算、记录等日常开发高频场景，开箱即用。</p>
+    </div>
+    <div class="tools-grid">
+      <div class="tool-card reveal">
+        <div class="tool-icon">📄</div>
+        <span class="tool-category">格式化</span>
+        <h3>JSON 格式化</h3>
+        <p>支持格式化、压缩、转义、去除转义、校验，输入输出可交换，拖拽分割条调整区域大小。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">🔐</div>
+        <span class="tool-category">编码</span>
+        <h3>Base64 转换</h3>
+        <p>支持编码、解码、混合解码（自动识别并解码文本中的 Base64 片段），中文友好。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">⏰</div>
+        <span class="tool-category">转换</span>
+        <h3>时间戳转换</h3>
+        <p>日期 ↔ 时间戳双向联动，同时显示秒级和毫秒级，日期精确到毫秒（YYYY-MM-DD HH:mm:ss.SSS）。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">📝</div>
+        <span class="tool-category">记录</span>
+        <h3>文本编辑器</h3>
+        <p>随手记录文本内容，支持 .txt 导入导出、字符统计、弹窗放大查看，清空即走。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">💾</div>
+        <span class="tool-category">转换</span>
+        <h3>存储单位换算</h3>
+        <p>B/KB/MB/GB/TB/PB/EB/ZB/YB 八级单位联动换算，支持千分位逗号显示选项。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">🧮</div>
+        <span class="tool-category">计算</span>
+        <h3>简单计算器</h3>
+        <p>支持 + - * / % ^ 及位运算（<< >> & | ~），安全求值，历史记录可查。</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-icon">🔢</div>
+        <span class="tool-category">转换</span>
+        <h3>进制转换</h3>
+        <p>2/8/10/16 进制互转，多输入位联动，支持大小写、带前缀（0x/0o/0b）选项。</p>
+      </div>
+      <div class="tool-card reveal" style="display:flex;align-items:center;justify-content:center;border-style:dashed;">
+        <div style="text-align:center;color:var(--text-secondary);">
+          <div style="font-size:32px;margin-bottom:8px;">+</div>
+          <div style="font-size:13px;">更多工具持续添加</div>
+        </div>
       </div>
     </div>
   </div>
@@ -677,19 +857,19 @@
         <p>CSS Grid 12 列网格 + dense 瀑布流填充，支持拖拽排序与鼠标调整大小，自由编排你的工作台。</p>
       </div>
       <div class="feature-card reveal">
-        <div class="feature-icon">📚</div>
-        <h3>命令库管理</h3>
-        <p>内置常用命令展示页面，支持模块与命令的增删改查，团队协作知识库触手可及。</p>
+        <div class="feature-icon">🔗</div>
+        <h3>多输入位联动</h3>
+        <p>转换类工具支持在任意输入位直接输入，其他位置自动联动更新，告别单向转换的低效。</p>
       </div>
       <div class="feature-card reveal">
-        <div class="feature-icon">🎨</div>
-        <h3>自定义工具页面</h3>
-        <p>前端工具组件独立注册，Vue3 单文件组件开发，所见即所得的自定义界面。</p>
+        <div class="feature-icon">🔍</div>
+        <h3>弹窗放大查看</h3>
+        <p>JSON、Base64、文本编辑器支持弹窗全屏化查看，拖拽分割条自由调整输入输出区域比例。</p>
       </div>
       <div class="feature-card reveal">
-        <div class="feature-icon">⚡</div>
-        <h3>轻量高效</h3>
-        <p>SpringBoot 3.2 + H2 内嵌数据库，开箱即用无需额外依赖。Vite 构建秒级热更新。</p>
+        <div class="feature-icon">💾</div>
+        <h3>状态持久化</h3>
+        <p>仪表盘布局和工具输入内容自动缓存到 localStorage，刷新页面不丢失，一键清除重置。</p>
       </div>
     </div>
   </div>
@@ -701,12 +881,15 @@
     <div class="reveal">
       <span class="section-tag">Live Demo</span>
       <h2 class="section-title">在线体验工具</h2>
-      <p class="section-desc">无需安装，直接在浏览器中体验三大核心工具的真实效果。</p>
+      <p class="section-desc">无需安装，直接在浏览器中体验核心工具的真实效果。</p>
     </div>
     <div class="demo-tabs reveal">
-      <div class="demo-tab active" onclick="switchDemo('json')">📄 JSON 格式化</div>
-      <div class="demo-tab" onclick="switchDemo('base64')">🔐 Base64 转换</div>
-      <div class="demo-tab" onclick="switchDemo('timestamp')">⏰ 时间戳转换</div>
+      <div class="demo-tab active" onclick="switchDemo('json', event)">📄 JSON 格式化</div>
+      <div class="demo-tab" onclick="switchDemo('base64', event)">🔐 Base64 转换</div>
+      <div class="demo-tab" onclick="switchDemo('timestamp', event)">⏰ 时间戳转换</div>
+      <div class="demo-tab" onclick="switchDemo('storage', event)">💾 存储单位换算</div>
+      <div class="demo-tab" onclick="switchDemo('base', event)">🔢 进制转换</div>
+      <div class="demo-tab" onclick="switchDemo('calc', event)">🧮 计算器</div>
     </div>
 
     <!-- JSON 格式化 -->
@@ -727,6 +910,7 @@
         <button class="demo-btn" onclick="jsonEscape()">🔒 转义</button>
         <button class="demo-btn" onclick="jsonUnescape()">🔓 去除转义</button>
         <button class="demo-btn" onclick="jsonValidate()">✅ 校验</button>
+        <button class="demo-btn" onclick="jsonSwap()">🔄 交换</button>
         <button class="demo-btn" onclick="jsonClear()">🗑 清空</button>
       </div>
       <div class="demo-result" id="json-status">就绪</div>
@@ -751,42 +935,142 @@
       </div>
       <div class="demo-actions">
         <button class="demo-btn primary" onclick="b64Convert()">⚡ 转换</button>
+        <button class="demo-btn" onclick="b64Swap()">🔄 交换</button>
         <button class="demo-btn" onclick="b64Clear()">🗑 清空</button>
       </div>
       <div class="demo-result" id="b64-status">就绪</div>
     </div>
 
-    <!-- 时间戳 -->
+    <!-- 时间戳（多输入位联动） -->
     <div class="demo-panel" id="demo-timestamp">
-      <div class="demo-radio">
-        <label><input type="radio" name="ts-mode" value="date-to-timestamp" checked> 日期 → 时间戳</label>
-        <label><input type="radio" name="ts-mode" value="timestamp-to-date"> 时间戳 → 日期</label>
-      </div>
-      <div class="demo-row">
-        <div class="demo-col">
-          <div class="demo-label">输入</div>
-          <input class="demo-input" id="ts-input" placeholder="如 2024-01-01 12:00:00 或 1704067200">
+      <div class="demo-label">多输入位联动（在任意位置输入，其他位置自动更新）</div>
+      <div class="linkage-grid" style="max-width:700px;">
+        <div class="linkage-item">
+          <div class="linkage-item-label">📅 日期 (YYYY-MM-DD HH:mm:ss.SSS)</div>
+          <input id="ts-date" placeholder="2024-01-01 12:00:00.000" oninput="tsOnInput('date')">
         </div>
-        <div class="demo-col">
-          <div class="demo-label">输出结果</div>
-          <div id="ts-output" style="display:flex;flex-direction:column;gap:12px;">
-            <div>
-              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">秒 (s)</div>
-              <input class="demo-input" id="ts-seconds" readonly placeholder="秒级时间戳">
-            </div>
-            <div>
-              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">毫秒 (ms)</div>
-              <input class="demo-input" id="ts-millis" readonly placeholder="毫秒级时间戳">
-            </div>
-          </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">⏱️ 秒级时间戳 (s)</div>
+          <input id="ts-seconds" placeholder="1704067200" oninput="tsOnInput('seconds')">
+        </div>
+        <div class="linkage-item" style="grid-column:span 2;">
+          <div class="linkage-item-label">⚡ 毫秒级时间戳 (ms)</div>
+          <input id="ts-millis" placeholder="1704067200000" oninput="tsOnInput('millis')">
         </div>
       </div>
       <div class="demo-actions">
-        <button class="demo-btn primary" onclick="tsConvert()">⚡ 转换</button>
-        <button class="demo-btn" onclick="tsNow()">🕐 当前时间戳</button>
+        <button class="demo-btn primary" onclick="tsNow()">🕐 当前时间</button>
         <button class="demo-btn" onclick="tsClear()">🗑 清空</button>
       </div>
-      <div class="demo-result" id="ts-status">就绪</div>
+      <div class="demo-result" id="ts-status">就绪 · 在任意输入框输入，其他自动联动</div>
+    </div>
+
+    <!-- 存储单位换算（多输入位联动） -->
+    <div class="demo-panel" id="demo-storage">
+      <div class="demo-label">多输入位联动（输入任意单位，其他单位自动换算）</div>
+      <div class="linkage-grid" style="max-width:800px;">
+        <div class="linkage-item">
+          <div class="linkage-item-label">B 字节</div>
+          <input id="st-B" value="1" oninput="stOnInput('B')">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">KB 千字节</div>
+          <input id="st-KB" oninput="stOnInput('KB')">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">MB 兆字节</div>
+          <input id="st-MB" oninput="stOnInput('MB')">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">GB 吉字节</div>
+          <input id="st-GB" oninput="stOnInput('GB')">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">TB 太字节</div>
+          <input id="st-TB" oninput="stOnInput('TB')">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">PB 拍字节</div>
+          <input id="st-PB" oninput="stOnInput('PB')">
+        </div>
+      </div>
+      <div class="demo-actions">
+        <label style="display:flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="st-comma" onchange="stRefresh()"> 千分位逗号
+        </label>
+        <button class="demo-btn" onclick="stClear()">🗑 清空</button>
+      </div>
+      <div class="demo-result" id="st-status">就绪 · 1 B = 0.000977 KB</div>
+    </div>
+
+    <!-- 进制转换（多输入位联动） -->
+    <div class="demo-panel" id="demo-base">
+      <div class="demo-label">多输入位联动（输入任意进制，其他进制自动转换）</div>
+      <div class="linkage-grid" style="max-width:700px;">
+        <div class="linkage-item">
+          <div class="linkage-item-label">2 进制 (Binary)</div>
+          <input id="bc-2" oninput="bcOnInput(2)">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">8 进制 (Octal)</div>
+          <input id="bc-8" oninput="bcOnInput(8)">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">10 进制 (Decimal)</div>
+          <input id="bc-10" value="255" oninput="bcOnInput(10)">
+        </div>
+        <div class="linkage-item">
+          <div class="linkage-item-label">16 进制 (Hex)</div>
+          <input id="bc-16" oninput="bcOnInput(16)">
+        </div>
+      </div>
+      <div class="demo-actions">
+        <button class="demo-btn" onclick="bcClear()">🗑 清空</button>
+      </div>
+      <div class="demo-result" id="bc-status">就绪 · 255 = 0xFF = 0b11111111 = 0o377</div>
+    </div>
+
+    <!-- 计算器 -->
+    <div class="demo-panel" id="demo-calc">
+      <div style="max-width:480px;margin:0 auto;">
+        <div class="calc-display">
+          <div class="calc-expr" id="calc-expr">&nbsp;</div>
+          <div class="calc-result" id="calc-result">0</div>
+        </div>
+        <div class="calc-keys">
+          <button class="calc-key clear" onclick="calcClear()">C</button>
+          <button class="calc-key" onclick="calcBack()">⌫</button>
+          <button class="calc-key op" onclick="calcInput('%')">%</button>
+          <button class="calc-key op" onclick="calcInput('/')">÷</button>
+          <button class="calc-key op" onclick="calcInput('*')">×</button>
+
+          <button class="calc-key" onclick="calcInput('7')">7</button>
+          <button class="calc-key" onclick="calcInput('8')">8</button>
+          <button class="calc-key" onclick="calcInput('9')">9</button>
+          <button class="calc-key op" onclick="calcInput('-')">−</button>
+          <button class="calc-key op" onclick="calcInput('^')">^</button>
+
+          <button class="calc-key" onclick="calcInput('4')">4</button>
+          <button class="calc-key" onclick="calcInput('5')">5</button>
+          <button class="calc-key" onclick="calcInput('6')">6</button>
+          <button class="calc-key op" onclick="calcInput('+')">+</button>
+          <button class="calc-key op" onclick="calcInput('(')">(</button>
+
+          <button class="calc-key" onclick="calcInput('1')">1</button>
+          <button class="calc-key" onclick="calcInput('2')">2</button>
+          <button class="calc-key" onclick="calcInput('3')">3</button>
+          <button class="calc-key op" onclick="calcInput(')')">)</button>
+          <button class="calc-key eq" onclick="calcEqual()">=</button>
+
+          <button class="calc-key wide" onclick="calcInput('0')">0</button>
+          <button class="calc-key" onclick="calcInput('.')">.</button>
+          <button class="calc-key" onclick="calcInput('<<')">«</button>
+          <button class="calc-key" onclick="calcInput('>>')">»</button>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text-secondary);text-align:center;">
+          支持: + − × ÷ % ^ ( ) 及位运算 « »
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -797,7 +1081,7 @@
     <div class="reveal">
       <span class="section-tag">Dashboard</span>
       <h2 class="section-title">瀑布流仪表盘</h2>
-      <p class="section-desc">12 列网格布局，dense 瀑布流填充。拖拽排序，拖拽调整大小，打造你的专属工作台。</p>
+      <p class="section-desc">12 列网格布局，dense 瀑布流填充。拖拽排序，拖拽调整大小，布局自动缓存，打造你的专属工作台。</p>
     </div>
     <div class="dashboard-preview reveal">
       <div class="dash-grid">
@@ -807,7 +1091,7 @@
             <span class="dash-card-close">×</span>
           </div>
           <div class="dash-card-body">
-{<br>&nbsp;&nbsp;"name": "tools-manager",<br>&nbsp;&nbsp;"version": "1.0",<br>&nbsp;&nbsp;"tools": [<br>&nbsp;&nbsp;&nbsp;&nbsp;"json",<br>&nbsp;&nbsp;&nbsp;&nbsp;"base64",<br>&nbsp;&nbsp;&nbsp;&nbsp;"timestamp"<br>&nbsp;&nbsp;]<br>}
+{<br>&nbsp;&nbsp;"name": "tools-manager",<br>&nbsp;&nbsp;"version": "1.0",<br>&nbsp;&nbsp;"tools": [<br>&nbsp;&nbsp;&nbsp;&nbsp;"json", "base64",<br>&nbsp;&nbsp;&nbsp;&nbsp;"timestamp"<br>&nbsp;&nbsp;]<br>}
           </div>
         </div>
         <div class="dash-card base64">
@@ -816,16 +1100,52 @@
             <span class="dash-card-close">×</span>
           </div>
           <div class="dash-card-body">
-编码: Hello → SGVsbG8=<br><br>解码: SGVsbG8= → Hello<br><br>混合解码: 自动识别并解码文本中的 Base64 片段
+编码: Hello → SGVsbG8=<br><br>解码: SGVsbG8= → Hello<br><br>混合解码: 自动识别并<br>解码文本中的 Base64 片段
           </div>
         </div>
         <div class="dash-card timestamp">
           <div class="dash-card-header">
-            <span>⏰ 时间戳转换</span>
+            <span>⏰ 时间戳</span>
             <span class="dash-card-close">×</span>
           </div>
           <div class="dash-card-body">
-2024-01-01 12:00:00<br>→ s: 1704067200<br>→ ms: 1704067200000
+2024-01-01 12:00:00.000<br>→ s: 1704067200<br>→ ms: 1704067200000
+          </div>
+        </div>
+        <div class="dash-card storage">
+          <div class="dash-card-header">
+            <span>💾 存储换算</span>
+            <span class="dash-card-close">×</span>
+          </div>
+          <div class="dash-card-body">
+1 GB = 1024 MB<br>= 1,048,576 KB<br>= 1,073,741,824 B
+          </div>
+        </div>
+        <div class="dash-card base">
+          <div class="dash-card-header">
+            <span>🔢 进制转换</span>
+            <span class="dash-card-close">×</span>
+          </div>
+          <div class="dash-card-body">
+255 (10) = 0xFF (16)<br>= 0b11111111 (2)<br>= 0o377 (8)
+          </div>
+        </div>
+        <div class="dash-card calc">
+          <div class="dash-card-header">
+            <span>🧮 计算器</span>
+            <span class="dash-card-close">×</span>
+          </div>
+          <div class="dash-card-body">
+2 + 3 * 4 = 14<br>2 ^ 10 = 1024<br>0xFF & 0x0F = 0x0F
+          </div>
+        </div>
+        <div class="dash-card text">
+          <div class="dash-card-header">
+            <span>📝 文本编辑器</span>
+            <span class="dash-card-close">×</span>
+          </div>
+          <div class="dash-card-body">
+随手记录灵感、命令、代码片段...<br>支持 .txt 导入导出，字符统计，弹窗放大查看。
           </div>
         </div>
         <div class="dash-card add" onclick="showToast('在真实项目中点击 + 可添加新工具到仪表盘')">
@@ -861,6 +1181,10 @@
           <div class="arch-node-title">🪟 窗口管理器</div>
           <div class="arch-node-desc">Pinia + markRaw<br>多实例 · 异步加载</div>
         </div>
+        <div class="arch-node frontend">
+          <div class="arch-node-title">💾 状态持久化</div>
+          <div class="arch-node-desc">useToolState<br>localStorage 缓存</div>
+        </div>
       </div>
       <div class="arch-arrow">⬇</div>
       <div class="arch-layer">
@@ -880,8 +1204,8 @@
           <div class="arch-node-desc">命令库存储<br>开箱即用</div>
         </div>
         <div class="arch-node data">
-          <div class="arch-node-title">📦 Tool 实现</div>
-          <div class="arch-node-desc">JSON · Base64 · Timestamp<br>可无限扩展</div>
+          <div class="arch-node-title">📦 7 大工具实现</div>
+          <div class="arch-node-desc">JSON · Base64 · 时间戳<br>存储 · 进制 · 计算器 · 文本</div>
         </div>
       </div>
     </div>
@@ -918,8 +1242,8 @@
   <div class="container">
     <div class="reveal">
       <span class="section-tag">Journey</span>
-      <h2 class="section-title">开发历程</h2>
-      <p class="section-desc">从框架设计到细节打磨，每一步都凝聚思考。</p>
+      <h2 class="section-title">工具开发历程</h2>
+      <p class="section-desc">从框架设计到工具打磨，每一步都凝聚思考。</p>
     </div>
     <div class="timeline reveal">
       <div class="tl-item">
@@ -934,18 +1258,38 @@
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
-        <div class="tl-title">📚 命令库 CRUD</div>
-        <div class="tl-desc">JPA + H2 存储，修复 Windows 下 GBK 编码导致的中文乱码，统一前后端字段命名。</div>
-      </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-title">🔧 三大工具实现</div>
+        <div class="tl-title">🔧 三大基础工具</div>
         <div class="tl-desc">JSON 格式化（参考 bejson.com 优化）、Base64 混合解码、时间戳双向转换（秒/毫秒同时展示）。</div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
         <div class="tl-title">📊 瀑布流仪表盘</div>
-        <div class="tl-desc">CSS Grid 12 列 + dense 瀑布流，HTML5 Drag 排序 + mousedown/mouseup 调整大小，工具组件自适应布局。</div>
+        <div class="tl-desc">CSS Grid 12 列 + dense 瀑布流，HTML5 Drag 排序 + mousedown/mouseup 调整大小，布局缓存 + 一键清除。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">📝 文本编辑器</div>
+        <div class="tl-desc">随手记录工具，支持 .txt 导入导出、字符统计、弹窗放大查看。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">💾 存储单位换算</div>
+        <div class="tl-desc">参考 cunchu.bmcx.com，B~YB 八级联动，千分位逗号选项，智能数值格式化。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">🧮 计算器 + 进制转换</div>
+        <div class="tl-desc">计算器支持四则运算、幂运算、位运算；进制转换 2/8/10/16 互转，多输入位联动。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">🔗 多输入位联动</div>
+        <div class="tl-desc">转换类工具全面升级：时间戳、存储单位、进制转换均支持在任意输入位输入，其他位置自动联动更新。</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-title">🔍 弹窗放大 + 拖拽分割</div>
+        <div class="tl-desc">JSON、Base64、文本编辑器支持弹窗全屏查看；useSplitter composable 实现拖拽分割条调整输入输出区域比例。</div>
       </div>
     </div>
   </div>
@@ -968,10 +1312,10 @@
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
   // ============ Tab 切换 ============
-  function switchDemo(name) {
+  function switchDemo(name, ev) {
     document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.demo-panel').forEach(p => p.classList.remove('active'));
-    event.target.classList.add('active');
+    ev.target.classList.add('active');
     document.getElementById('demo-' + name).classList.add('active');
   }
 
@@ -1010,6 +1354,14 @@
       setStatus('json-status', '✅ JSON 格式正确', 'ok');
     } catch(e) { setStatus('json-status', '❌ ' + e.message, 'err'); }
   }
+  function jsonSwap() {
+    const inp = document.getElementById('json-input');
+    const out = document.getElementById('json-output');
+    const tmp = inp.value;
+    inp.value = out.value;
+    out.value = tmp;
+    setStatus('json-status', '✅ 已交换输入输出', 'ok');
+  }
   function jsonClear() {
     document.getElementById('json-input').value = '';
     document.getElementById('json-output').value = '';
@@ -1030,12 +1382,10 @@
         result = decodeURIComponent(escape(atob(input)));
         setStatus('b64-status', '✅ 解码成功', 'ok');
       } else {
-        // 混合解码：匹配 Base64 片段并解码，非 Base64 保留
         const pattern = /[A-Za-z0-9+/]{4,}={0,2}/g;
         result = input.replace(pattern, (match) => {
           try {
             const decoded = decodeURIComponent(escape(atob(match)));
-            // 检查是否为可打印字符
             if (/^[\x20-\x7E\u4e00-\u9fa5\n\r\t]*$/.test(decoded)) return decoded;
             return match;
           } catch(e) { return match; }
@@ -1045,47 +1395,178 @@
       document.getElementById('b64-output').value = result;
     } catch(e) { setStatus('b64-status', '❌ 转换失败: ' + e.message, 'err'); }
   }
+  function b64Swap() {
+    const inp = document.getElementById('b64-input');
+    const out = document.getElementById('b64-output');
+    const tmp = inp.value;
+    inp.value = out.value;
+    out.value = tmp;
+    // 同时切换编码/解码模式
+    const checked = document.querySelector('input[name="b64-mode"]:checked').value;
+    if (checked === 'encode') document.querySelector('input[name="b64-mode"][value="decode"]').checked = true;
+    else if (checked === 'decode') document.querySelector('input[name="b64-mode"][value="encode"]').checked = true;
+    setStatus('b64-status', '✅ 已交换并切换模式', 'ok');
+  }
   function b64Clear() {
     document.getElementById('b64-input').value = '';
     document.getElementById('b64-output').value = '';
     setStatus('b64-status', '已清空', 'info');
   }
 
-  // ============ 时间戳工具 ============
-  function tsConvert() {
-    const mode = document.querySelector('input[name="ts-mode"]:checked').value;
-    const input = document.getElementById('ts-input').value.trim();
-    if (!input) return setStatus('ts-status', '请输入内容', 'warn');
+  // ============ 时间戳工具（多输入位联动） ============
+  function tsFormatDate(date) {
+    const pad = (n, len = 2) => String(n).padStart(len, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(),3)}`;
+  }
+  function tsParseDate(raw) {
+    // 支持 YYYY-MM-DD HH:mm:ss / YYYY-MM-DD HH:mm:ss.SSS / YYYY/MM/DD ...
+    let s = raw.replace(/[\/年月日]/g, (m, o) => /[年月]/.test(m) ? '-' : (m === '日' ? ' ' : '/'));
+    s = s.replace(/时|分/g, ':').replace(/秒/g, '');
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  }
+  function tsOnInput(field) {
+    const raw = document.getElementById('ts-' + field).value.trim();
+    if (!raw) {
+      ['date','seconds','millis'].forEach(k => { if (k !== field) document.getElementById('ts-' + k).value = ''; });
+      setStatus('ts-status', '已清空', 'info');
+      return;
+    }
     try {
-      if (mode === 'date-to-timestamp') {
-        const date = new Date(input.replace(/-/g,'/'));
-        if (isNaN(date)) throw new Error('日期格式无效');
-        const millis = date.getTime();
-        document.getElementById('ts-seconds').value = Math.floor(millis / 1000);
-        document.getElementById('ts-millis').value = millis;
-        setStatus('ts-status', '✅ 转换成功（同时显示秒和毫秒）', 'ok');
-      } else {
-        let ts = parseInt(input);
-        if (input.length <= 10) ts = ts * 1000;
-        const date = new Date(ts);
-        const fmt = (n) => String(n).padStart(2,'0');
-        const result = `${date.getFullYear()}-${fmt(date.getMonth()+1)}-${fmt(date.getDate())} ${fmt(date.getHours())}:${fmt(date.getMinutes())}:${fmt(date.getSeconds())}`;
-        document.getElementById('ts-seconds').value = result;
-        document.getElementById('ts-millis').value = '';
-        setStatus('ts-status', '✅ 转换成功', 'ok');
+      if (field === 'date') {
+        const date = tsParseDate(raw);
+        if (!date) return setStatus('ts-status', '⚠️ 日期格式无效', 'warn');
+        const ms = date.getTime();
+        document.getElementById('ts-seconds').value = Math.floor(ms / 1000);
+        document.getElementById('ts-millis').value = ms;
+        setStatus('ts-status', '✅ 联动更新成功', 'ok');
+      } else if (field === 'seconds') {
+        const sec = parseInt(raw);
+        if (isNaN(sec)) return setStatus('ts-status', '⚠️ 秒级时间戳无效', 'warn');
+        const ms = sec * 1000;
+        document.getElementById('ts-date').value = tsFormatDate(new Date(ms));
+        document.getElementById('ts-millis').value = ms;
+        setStatus('ts-status', '✅ 联动更新成功', 'ok');
+      } else if (field === 'millis') {
+        const ms = parseInt(raw);
+        if (isNaN(ms)) return setStatus('ts-status', '⚠️ 毫秒时间戳无效', 'warn');
+        document.getElementById('ts-date').value = tsFormatDate(new Date(ms));
+        document.getElementById('ts-seconds').value = Math.floor(ms / 1000);
+        setStatus('ts-status', '✅ 联动更新成功', 'ok');
       }
     } catch(e) { setStatus('ts-status', '❌ ' + e.message, 'err'); }
   }
   function tsNow() {
-    const now = Date.now();
-    document.getElementById('ts-input').value = Math.floor(now / 1000);
-    tsConvert();
+    const now = new Date();
+    document.getElementById('ts-date').value = tsFormatDate(now);
+    tsOnInput('date');
   }
   function tsClear() {
-    document.getElementById('ts-input').value = '';
-    document.getElementById('ts-seconds').value = '';
-    document.getElementById('ts-millis').value = '';
+    ['date','seconds','millis'].forEach(k => document.getElementById('ts-' + k).value = '');
     setStatus('ts-status', '已清空', 'info');
+  }
+
+  // ============ 存储单位换算（多输入位联动） ============
+  const ST_UNITS = ['B','KB','MB','GB','TB','PB','EB','ZB','YB'];
+  function stFormat(value) {
+    if (value === 0) return '0';
+    if (Math.abs(value) < 0.000001) return value.toExponential(4);
+    if (Math.abs(value) < 1) return value.toFixed(8).replace(/\.?0+$/, '');
+    if (Math.abs(value) < 1024) return value.toFixed(4).replace(/\.?0+$/, '');
+    if (Math.abs(value) < 1e15) {
+      const comma = document.getElementById('st-comma').checked;
+      return comma
+        ? value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+        : value.toFixed(2).replace(/\.?0+$/, '');
+    }
+    return value.toExponential(4);
+  }
+  function stOnInput(unit) {
+    const raw = document.getElementById('st-' + unit).value.trim();
+    if (!raw) {
+      ST_UNITS.forEach(u => { if (u !== unit) document.getElementById('st-' + u).value = ''; });
+      setStatus('st-status', '已清空', 'info');
+      return;
+    }
+    const value = parseFloat(raw);
+    if (isNaN(value)) return setStatus('st-status', '⚠️ 请输入有效数字', 'warn');
+    const unitIdx = ST_UNITS.indexOf(unit);
+    const bytes = value * Math.pow(1024, unitIdx);
+    ST_UNITS.forEach(u => {
+      if (u !== unit) {
+        const idx = ST_UNITS.indexOf(u);
+        document.getElementById('st-' + u).value = stFormat(bytes / Math.pow(1024, idx));
+      }
+    });
+    setStatus('st-status', `✅ ${value} ${unit} 联动更新完成`, 'ok');
+  }
+  function stRefresh() {
+    // 重新格式化所有非空输入
+    const bVal = document.getElementById('st-B').value;
+    if (bVal) stOnInput('B');
+  }
+  function stClear() {
+    ST_UNITS.forEach(u => { if (u !== 'B') document.getElementById('st-' + u).value = ''; });
+    document.getElementById('st-B').value = '1';
+    stOnInput('B');
+    setStatus('st-status', '已重置为 1 B', 'info');
+  }
+
+  // ============ 进制转换（多输入位联动） ============
+  function bcOnInput(base) {
+    const raw = document.getElementById('bc-' + base).value.trim();
+    if (!raw) {
+      [2,8,10,16].forEach(b => { if (b !== base) document.getElementById('bc-' + b).value = ''; });
+      setStatus('bc-status', '已清空', 'info');
+      return;
+    }
+    let cleanVal = raw;
+    let parseBase = base;
+    // 处理前缀
+    if (cleanVal.startsWith('0x') || cleanVal.startsWith('0X')) { parseBase = 16; cleanVal = cleanVal.slice(2); }
+    else if (cleanVal.startsWith('0o') || cleanVal.startsWith('0O')) { parseBase = 8; cleanVal = cleanVal.slice(2); }
+    else if (cleanVal.startsWith('0b') || cleanVal.startsWith('0B')) { parseBase = 2; cleanVal = cleanVal.slice(2); }
+    const decimalVal = parseInt(cleanVal, parseBase);
+    if (isNaN(decimalVal)) return setStatus('bc-status', '⚠️ 无效的 ' + base + ' 进制数', 'warn');
+    [2,8,10,16].forEach(b => {
+      if (b !== base) document.getElementById('bc-' + b).value = decimalVal.toString(b).toUpperCase();
+    });
+    setStatus('bc-status', `✅ ${raw} (${base}进制) 联动更新完成`, 'ok');
+  }
+  function bcClear() {
+    [2,8,10,16].forEach(b => document.getElementById('bc-' + b).value = '');
+    setStatus('bc-status', '已清空', 'info');
+  }
+
+  // ============ 计算器 ============
+  let calcExpr = '';
+  function calcInput(key) {
+    calcExpr += key;
+    document.getElementById('calc-expr').textContent = calcExpr;
+  }
+  function calcClear() {
+    calcExpr = '';
+    document.getElementById('calc-expr').innerHTML = '&nbsp;';
+    document.getElementById('calc-result').textContent = '0';
+  }
+  function calcBack() {
+    calcExpr = calcExpr.slice(0, -1);
+    document.getElementById('calc-expr').textContent = calcExpr || '\u00a0';
+  }
+  function calcEqual() {
+    try {
+      // 安全求值：仅允许数字和运算符
+      let expr = calcExpr
+        .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-')
+        .replace(/\^/g, '**')
+        .replace(/«/g, '<<').replace(/»/g, '>>');
+      if (!/^[\d+\-*/%().< >&|^*]+$/.test(expr)) throw new Error('包含非法字符');
+      // eslint-disable-next-line no-new-func
+      const result = Function('"use strict";return (' + expr + ')')();
+      document.getElementById('calc-result').textContent = result;
+    } catch(e) {
+      document.getElementById('calc-result').textContent = 'Error';
+    }
   }
 
   // ============ 工具函数 ============
@@ -1104,8 +1585,10 @@
     setTimeout(() => t.remove(), 3000);
   }
 
-  // 初始化 JSON 演示
+  // 初始化
   jsonFormat();
+  stOnInput('B');
+  bcOnInput(10);
 </script>
 </body>
 </html>

@@ -58,6 +58,30 @@ export const toolRegistry = {
     category: '转换',
     needBackend: false,
     component: defineAsyncComponent(() => import('./BaseConverter.vue'))
+  },
+  'ip-converter': {
+    id: 'ip-converter',
+    name: 'IP/数字转换',
+    icon: 'Connection',
+    category: '转换',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./IpConverter.vue'))
+  },
+  'diff-tool': {
+    id: 'diff-tool',
+    name: '文本Diff对比',
+    icon: 'DocumentCopy',
+    category: '对比',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./DiffTool.vue'))
+  },
+  'text-compare': {
+    id: 'text-compare',
+    name: '文本集合对比',
+    icon: 'Files',
+    category: '对比',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./TextCompare.vue'))
   }
 }
 

@@ -74,6 +74,40 @@ export const useWindowManagerStore = defineStore('windowManager', {
       if (exists) {
         this.activeWindowId = id
       }
+    },
+
+    // 关闭所有窗口
+    closeAll() {
+      this.windows = []
+      this.activeWindowId = null
+    },
+
+    // 关闭右侧标签
+    closeRight(instanceId) {
+      const index = this.windows.findIndex((w) => w.instanceId === instanceId)
+      if (index === -1) return
+      this.windows = this.windows.slice(0, index + 1)
+      // 如果当前活动窗口被关闭了，切换到最后一个
+      if (!this.windows.find((w) => w.instanceId === this.activeWindowId)) {
+        this.activeWindowId = this.windows.length > 0 ? this.windows[this.windows.length - 1].instanceId : null
+      }
+    },
+
+    // 关闭左侧标签
+    closeLeft(instanceId) {
+      const index = this.windows.findIndex((w) => w.instanceId === instanceId)
+      if (index === -1) return
+      this.windows = this.windows.slice(index)
+      // 如果当前活动窗口被关闭了，切换到第一个
+      if (!this.windows.find((w) => w.instanceId === this.activeWindowId)) {
+        this.activeWindowId = this.windows.length > 0 ? this.windows[0].instanceId : null
+      }
+    },
+
+    // 关闭其他标签
+    closeOthers(instanceId) {
+      this.windows = this.windows.filter((w) => w.instanceId === instanceId)
+      this.activeWindowId = instanceId
     }
   }
 })

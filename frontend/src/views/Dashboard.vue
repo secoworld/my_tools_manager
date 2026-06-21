@@ -21,7 +21,10 @@ const defaultSizes = {
   'text-editor': { colSpan: 4, rowSpan: 4 },
   'storage-converter': { colSpan: 4, rowSpan: 4 },
   'calculator': { colSpan: 4, rowSpan: 4 },
-  'base-converter': { colSpan: 4, rowSpan: 4 }
+  'base-converter': { colSpan: 4, rowSpan: 4 },
+  'ip-converter': { colSpan: 4, rowSpan: 4 },
+  'diff-tool': { colSpan: 6, rowSpan: 4 },
+  'text-compare': { colSpan: 6, rowSpan: 4 }
 }
 
 // 工具卡片列表
