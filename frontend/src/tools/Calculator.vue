@@ -1,4 +1,4 @@
-<script setup>
+  <script setup>
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CopyDocument, Delete, QuestionFilled, Promotion } from '@element-plus/icons-vue'
@@ -210,6 +210,9 @@ const onKeydown = (e) => {
   flex-direction: column;
   height: 100%;
   gap: 8px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 4px;
 }
 
 .label {
