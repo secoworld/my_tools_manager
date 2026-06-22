@@ -47,6 +47,7 @@ public class SecurityConfig {
             "/api/tools/",
             "/api/commands/",
             "/assets/",
+            "/vendor/",
             "/h2-console/"
     );
 
@@ -71,6 +72,7 @@ public class SecurityConfig {
                                 "/index.html",
                                 "/favicon.ico",
                                 "/assets/**",
+                                "/vendor/**",
                                 "/h2-console/**"
                         ).permitAll()
                         .anyRequest().authenticated()

@@ -102,7 +102,7 @@ const DEFAULT_HTML = `<div id="app">
   .input-group p { margin-top: 8px; color: #67c23a; }
 </style>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"><\/script>
+<script src="/vendor/vue.global.js"><\/script>
 <script>
   const { createApp, ref } = Vue
   createApp({
