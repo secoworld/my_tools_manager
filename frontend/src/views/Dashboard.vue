@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, markRaw } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { toolRegistry, getToolList } from '../tools/registry'
+import { getCustomPlugins, customPlugins, loadCustomPlugins } from '../tools/customRegistry'
 import { clearToolState, clearAllToolState } from '../composables/useToolState'
 
 // 网格配置
@@ -66,7 +68,10 @@ const loadLayout = () => {
       const layout = JSON.parse(saved)
       cards.value = layout
         .map((item) => {
-          const tool = toolRegistry[item.toolId]
+          let tool = toolRegistry[item.toolId]
+          if (!tool) {
+            tool = customPlugins.value.find(p => p.id === item.toolId)
+          }
           if (!tool) return null
           return {
             id: item.id,
@@ -111,7 +116,11 @@ watch([addBtnPos, addBtnSize], saveAddBtn, { deep: true })
 
 // 添加工具
 const addTool = (toolId) => {
-  const tool = toolRegistry[toolId]
+  // 先从内置注册表查找，再从自定义插件查找
+  let tool = toolRegistry[toolId]
+  if (!tool) {
+    tool = customPlugins.value.find(p => p.id === toolId)
+  }
   if (!tool) return
   const id = `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   const size = defaultSizes[toolId] || { colSpan: 4, rowSpan: 2 }
@@ -152,9 +161,23 @@ const clearDashboard = () => {
     .catch(() => {})
 }
 
-onMounted(() => {
+// 窗口大小变化时，约束 "+" 按钮位置在可视区域内
+const clampAddBtnPos = () => {
+  if (addBtnPos.value.x < 0) return // 使用默认位置，无需约束
+  const maxX = window.innerWidth - addBtnSize.value
+  const maxY = window.innerHeight - addBtnSize.value
+  addBtnPos.value = {
+    x: Math.max(0, Math.min(maxX, addBtnPos.value.x)),
+    y: Math.max(0, Math.min(maxY, addBtnPos.value.y))
+  }
+}
+
+onMounted(async () => {
+  // 刷新自定义插件列表，确保后台禁用的插件不再显示
+  await loadCustomPlugins()
   loadLayout()
   loadAddBtn()
+  window.addEventListener('resize', clampAddBtnPos)
 })
 
 // ---- 拖拽排序（仅标题栏可拖拽）----
@@ -289,6 +312,7 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', onMouseUp)
   document.removeEventListener('mousemove', onAddBtnMouseMove)
   document.removeEventListener('mouseup', onAddBtnMouseUp)
+  window.removeEventListener('resize', clampAddBtnPos)
 })
 </script>
 
@@ -304,7 +328,10 @@ onUnmounted(() => {
     <!-- 顶部操作栏 -->
     <div v-if="cards.length > 0" class="dash-toolbar">
       <span class="dash-count">共 {{ cards.length }} 个工具</span>
-      <el-button type="danger" size="small" plain @click="clearDashboard">一键清除</el-button>
+      <div class="toolbar-actions">
+        <el-button type="primary" size="small" :icon="Plus" @click="showToolPicker = true">添加工具</el-button>
+        <el-button type="danger" size="small" plain @click="clearDashboard">一键清除</el-button>
+      </div>
     </div>
 
     <!-- 网格容器 -->
@@ -337,7 +364,7 @@ onUnmounted(() => {
         </div>
         <!-- 工具内容 -->
         <div class="card-body">
-          <component :is="card.component" :instanceId="card.id" />
+          <component :is="card.component" :instanceId="card.id" :plugin-id="card.toolId" />
         </div>
         <!-- 右下角调整大小 -->
         <div class="resize-handle" @mousedown="startResize($event, card)" />
@@ -364,7 +391,7 @@ onUnmounted(() => {
     <el-dialog v-model="showToolPicker" title="选择工具" width="420px">
       <div class="tool-picker-list">
         <div
-          v-for="tool in getToolList()"
+          v-for="tool in [...getToolList(), ...getCustomPlugins('DASHBOARD')]"
           :key="tool.id"
           class="tool-picker-item"
           @click="addTool(tool.id)"
@@ -412,12 +439,21 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 0 16px;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f0f2f5;
 }
 
 .dash-count {
   font-size: 13px;
   color: #909399;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* 网格布局 */

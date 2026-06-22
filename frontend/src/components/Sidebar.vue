@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { Document, Lock, Clock, EditPen, Coin, Grid, Histogram, Connection, DocumentCopy, Files } from '@element-plus/icons-vue'
+import { Document, Lock, Clock, EditPen, Coin, Grid, Histogram, Connection, DocumentCopy, Files, Tools } from '@element-plus/icons-vue'
 import { useWindowManagerStore } from '../stores/windowManager'
 import { getToolList } from '../tools/registry'
+import { getCustomPlugins } from '../tools/customRegistry'
 
 const windowManager = useWindowManagerStore()
 
@@ -17,12 +18,13 @@ const iconMap = {
   Histogram,
   Connection,
   DocumentCopy,
-  Files
+  Files,
+  Tools
 }
 
-// 按 category 分组的工具列表
+// 按 category 分组的工具列表（内置 + 自定义）
 const groupedTools = computed(() => {
-  const tools = getToolList()
+  const tools = [...getToolList(), ...getCustomPlugins('WORKSPACE')]
   const groups = {}
   tools.forEach((tool) => {
     if (!groups[tool.category]) {
@@ -53,7 +55,7 @@ const handleToolClick = (toolId) => {
             @click="handleToolClick(tool.id)"
           >
             <el-icon class="tool-icon">
-              <component :is="iconMap[tool.icon]" v-if="iconMap[tool.icon]" />
+              <component :is="iconMap[tool.icon] || Tools" />
             </el-icon>
             <span class="tool-name">{{ tool.name }}</span>
             <el-tag v-if="tool.needBackend" size="small" type="warning" effect="plain">后端</el-tag>

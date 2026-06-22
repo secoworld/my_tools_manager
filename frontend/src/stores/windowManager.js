@@ -1,6 +1,16 @@
 import { defineStore } from 'pinia'
 import { markRaw } from 'vue'
 import { toolRegistry } from '../tools/registry'
+import { customPlugins } from '../tools/customRegistry'
+
+// 查找工具：先从内置注册表，再从自定义插件
+const findTool = (toolId) => {
+  let tool = toolRegistry[toolId]
+  if (!tool) {
+    tool = customPlugins.value.find(p => p.id === toolId)
+  }
+  return tool
+}
 
 const STORAGE_KEY = 'tools-manager-workspace-tabs'
 
@@ -22,7 +32,7 @@ const loadTabs = () => {
     const data = JSON.parse(saved)
     const windows = (data.windows || [])
       .map(w => {
-        const tool = toolRegistry[w.toolId]
+        const tool = findTool(w.toolId)
         if (!tool) return null
         return {
           instanceId: w.instanceId,
@@ -80,7 +90,7 @@ export const useWindowManagerStore = defineStore('windowManager', {
 
   actions: {
     openTool(toolId) {
-      const tool = toolRegistry[toolId]
+      const tool = findTool(toolId)
       if (!tool) {
         console.warn(`工具 ${toolId} 未在注册表中找到`)
         return

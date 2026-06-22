@@ -32,6 +32,8 @@ LABEL maintainer="Tools Manager"
 LABEL description="开发者工具管理框架"
 # 复制构建好的 JAR
 COPY --from=backend-builder /app/backend/target/*.jar app.jar
+# 创建数据目录和插件目录
+RUN mkdir -p /app/data /app/plugins
 # 暴露端口
 EXPOSE 8085
 # JVM 参数 (可通过环境变量调整)

@@ -27,9 +27,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # 数据持久化（命令库数据）
+    # 数据持久化（数据库 + 插件文件）
     volumes:
       - tools-manager-data:/app/data
+      - tools-manager-plugins:/app/plugins
 
 volumes:
   tools-manager-data:
+  tools-manager-plugins:
