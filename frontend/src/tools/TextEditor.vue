@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Download, Upload, Delete, ZoomIn, ZoomOut, FullScreen } from '@element-plus/icons-vue'
 import { useToolState } from '../composables/useToolState'
 import { useZoomFullscreen } from '../composables/useZoomFullscreen'
+import LineNumberTextarea from '../components/LineNumberTextarea.vue'
 
 const props = defineProps({
   instanceId: { type: String, required: true }
@@ -11,8 +12,9 @@ const props = defineProps({
 
 const title = ref('无标题笔记')
 const content = ref('')
+const showLineNumbers = ref(false)
 
-useToolState(props.instanceId, { title, content })
+useToolState(props.instanceId, { title, content, showLineNumbers })
 
 const editorZoom = useZoomFullscreen(14)
 
@@ -69,17 +71,21 @@ const clearAll = () => { content.value = ''; ElMessage.info('已清空') }
         <el-button size="small" :icon="ZoomOut" @click="editorZoom.zoomOut()" />
         <span class="font-size-display">{{ editorZoom.fontSize.value }}px</span>
         <el-button size="small" :icon="ZoomIn" @click="editorZoom.zoomIn()" />
+        <el-divider direction="vertical" />
+        <el-checkbox v-model="showLineNumbers" size="small">显示行号</el-checkbox>
       </div>
       <el-button size="small" :icon="FullScreen" @click="editorZoom.toggleFullscreen()">放大编辑</el-button>
     </div>
 
     <!-- 编辑区 -->
-    <textarea
-      v-model="content"
-      class="editor-textarea"
-      :style="{ fontSize: editorZoom.fontSize.value + 'px' }"
-      placeholder="在此记录你的内容..."
-    ></textarea>
+    <div class="editor-container">
+      <LineNumberTextarea
+        v-model="content"
+        :show-line-numbers="showLineNumbers"
+        :font-size="editorZoom.fontSize.value"
+        placeholder="在此记录你的内容..."
+      />
+    </div>
 
     <!-- 状态栏 -->
     <div class="editor-status">
@@ -95,6 +101,7 @@ const clearAll = () => { content.value = ''; ElMessage.info('已清空') }
       width="85%"
       top="5vh"
       :close-on-click-modal="false"
+      class="text-editor-dialog"
     >
       <div class="dialog-toolbar">
         <input v-model="title" class="dialog-title-input" placeholder="笔记标题..." />
@@ -105,14 +112,18 @@ const clearAll = () => { content.value = ''; ElMessage.info('已清空') }
           <span class="font-size-display">{{ editorZoom.fontSize.value }}px</span>
           <el-button size="small" :icon="ZoomIn" @click="editorZoom.zoomIn()" />
           <el-button size="small" @click="editorZoom.resetZoom()">重置</el-button>
+          <el-divider direction="vertical" />
+          <el-checkbox v-model="showLineNumbers" size="small">显示行号</el-checkbox>
         </div>
       </div>
-      <textarea
-        v-model="content"
-        class="dialog-textarea"
-        :style="{ fontSize: editorZoom.fontSize.value + 'px' }"
-        placeholder="在此记录你的内容..."
-      ></textarea>
+      <div class="dialog-editor-container">
+        <LineNumberTextarea
+          v-model="content"
+          :show-line-numbers="showLineNumbers"
+          :font-size="editorZoom.fontSize.value"
+          placeholder="在此记录你的内容..."
+        />
+      </div>
       <div class="dialog-status">
         <span>字符: {{ charCount }}</span>
         <span>行数: {{ lineCount }}</span>
@@ -165,22 +176,35 @@ const clearAll = () => { content.value = ''; ElMessage.info('已清空') }
 .zoom-actions { display: flex; align-items: center; gap: 4px; }
 .font-size-display { font-size: 12px; color: #909399; min-width: 36px; text-align: center; }
 
-.editor-textarea {
+/* 编辑区容器（包裹 LineNumberTextarea） */
+.editor-container {
   flex: 1;
-  width: 100%;
+  min-height: 0;
   border: 1px solid #dcdfe6;
   border-radius: 8px;
-  padding: 14px;
-  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
-  line-height: 1.7;
-  color: #303133;
-  resize: none;
-  outline: none;
-  min-height: 0;
+  overflow: hidden;
   transition: border-color 0.3s;
 }
 
-.editor-textarea:focus { border-color: #409eff; }
+.editor-container:focus-within {
+  border-color: #409eff;
+}
+
+.editor-container :deep(.line-number-textarea) {
+  height: 100%;
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.7;
+}
+
+.editor-container :deep(.text-area) {
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.7;
+}
+
+.editor-container :deep(.line-numbers) {
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.7;
+}
 
 .editor-status {
   display: flex;
@@ -216,22 +240,30 @@ const clearAll = () => { content.value = ''; ElMessage.info('已清空') }
 
 .dialog-title-input:focus { border-bottom-color: #409eff; }
 
-.dialog-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.dialog-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
 
-.dialog-textarea {
-  width: 100%;
-  height: 65vh;
+.dialog-editor-container {
   border: 1px solid #dcdfe6;
   border-radius: 8px;
-  padding: 16px;
-  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
-  line-height: 1.8;
-  color: #303133;
-  resize: none;
-  outline: none;
+  overflow: hidden;
+  height: 65vh;
 }
 
-.dialog-textarea:focus { border-color: #409eff; }
+.dialog-editor-container :deep(.line-number-textarea) {
+  height: 100%;
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.8;
+}
+
+.dialog-editor-container :deep(.text-area) {
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.8;
+}
+
+.dialog-editor-container :deep(.line-numbers) {
+  font-family: 'Consolas', 'Monaco', 'Microsoft YaHei', monospace;
+  line-height: 1.8;
+}
 
 .dialog-status {
   display: flex;

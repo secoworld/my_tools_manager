@@ -1,13 +1,22 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Close, ArrowDown } from '@element-plus/icons-vue'
-import { useWindowManagerStore } from '../stores/windowManager'
+import { useWindowManagerStore, saveTabs } from '../stores/windowManager'
 import Sidebar from '../components/Sidebar.vue'
 
 const windowManager = useWindowManagerStore()
 
 const windows = computed(() => windowManager.windows)
 const activeWindowId = computed(() => windowManager.activeWindowId)
+
+// 深度监听标签页变化，自动持久化到 localStorage（与仪表盘布局缓存同模式）
+watch(
+  () => [windowManager.windows, windowManager.activeWindowId],
+  () => {
+    saveTabs(windowManager.$state)
+  },
+  { deep: true }
+)
 
 // ---- 右键菜单 ----
 const contextMenu = ref({

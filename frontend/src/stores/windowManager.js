@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { markRaw } from 'vue'
 import { toolRegistry } from '../tools/registry'
 
+const STORAGE_KEY = 'tools-manager-workspace-tabs'
+
 // 生成随机字符串
 const generateRandomStr = (len = 6) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -12,10 +14,62 @@ const generateRandomStr = (len = 6) => {
   return result
 }
 
+// 从 localStorage 恢复标签页
+const loadTabs = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return { windows: [], activeWindowId: null }
+    const data = JSON.parse(saved)
+    const windows = (data.windows || [])
+      .map(w => {
+        const tool = toolRegistry[w.toolId]
+        if (!tool) return null
+        return {
+          instanceId: w.instanceId,
+          toolId: w.toolId,
+          name: w.name,
+          icon: w.icon,
+          category: w.category,
+          needBackend: w.needBackend,
+          component: markRaw(tool.component)
+        }
+      })
+      .filter(Boolean)
+    const activeWindowId = data.activeWindowId && windows.find(w => w.instanceId === data.activeWindowId)
+      ? data.activeWindowId
+      : (windows.length > 0 ? windows[0].instanceId : null)
+    return { windows, activeWindowId }
+  } catch {
+    return { windows: [], activeWindowId: null }
+  }
+}
+
+// 保存标签页到 localStorage（排除不可序列化的 component）
+export const saveTabs = (state) => {
+  try {
+    const serializable = {
+      windows: state.windows.map(w => ({
+        instanceId: w.instanceId,
+        toolId: w.toolId,
+        name: w.name,
+        icon: w.icon,
+        category: w.category,
+        needBackend: w.needBackend
+      })),
+      activeWindowId: state.activeWindowId
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable))
+  } catch {
+    // 静默失败
+  }
+}
+
+const saved = loadTabs()
+
 export const useWindowManagerStore = defineStore('windowManager', {
   state: () => ({
-    windows: [],
-    activeWindowId: null
+    windows: saved.windows,
+    activeWindowId: saved.activeWindowId
   }),
 
   getters: {
@@ -25,7 +79,6 @@ export const useWindowManagerStore = defineStore('windowManager', {
   },
 
   actions: {
-    // 打开工具，生成唯一实例 ID
     openTool(toolId) {
       const tool = toolRegistry[toolId]
       if (!tool) {
@@ -42,21 +95,18 @@ export const useWindowManagerStore = defineStore('windowManager', {
         icon: tool.icon,
         category: tool.category,
         needBackend: tool.needBackend,
-        // 使用 markRaw 防止组件被响应式系统 Proxy 包裹，否则 Vue 无法识别为组件
         component: markRaw(tool.component)
       })
 
       this.activeWindowId = instanceId
     },
 
-    // 关闭窗口
     closeWindow(id) {
       const index = this.windows.findIndex((w) => w.instanceId === id)
       if (index === -1) return
 
       this.windows.splice(index, 1)
 
-      // 更新 activeWindowId
       if (this.activeWindowId === id) {
         if (this.windows.length === 0) {
           this.activeWindowId = null
@@ -68,7 +118,6 @@ export const useWindowManagerStore = defineStore('windowManager', {
       }
     },
 
-    // 设置活动窗口
     setActive(id) {
       const exists = this.windows.some((w) => w.instanceId === id)
       if (exists) {
@@ -76,35 +125,29 @@ export const useWindowManagerStore = defineStore('windowManager', {
       }
     },
 
-    // 关闭所有窗口
     closeAll() {
       this.windows = []
       this.activeWindowId = null
     },
 
-    // 关闭右侧标签
     closeRight(instanceId) {
       const index = this.windows.findIndex((w) => w.instanceId === instanceId)
       if (index === -1) return
       this.windows = this.windows.slice(0, index + 1)
-      // 如果当前活动窗口被关闭了，切换到最后一个
       if (!this.windows.find((w) => w.instanceId === this.activeWindowId)) {
         this.activeWindowId = this.windows.length > 0 ? this.windows[this.windows.length - 1].instanceId : null
       }
     },
 
-    // 关闭左侧标签
     closeLeft(instanceId) {
       const index = this.windows.findIndex((w) => w.instanceId === instanceId)
       if (index === -1) return
       this.windows = this.windows.slice(index)
-      // 如果当前活动窗口被关闭了，切换到第一个
       if (!this.windows.find((w) => w.instanceId === this.activeWindowId)) {
         this.activeWindowId = this.windows.length > 0 ? this.windows[0].instanceId : null
       }
     },
 
-    // 关闭其他标签
     closeOthers(instanceId) {
       this.windows = this.windows.filter((w) => w.instanceId === instanceId)
       this.activeWindowId = instanceId
