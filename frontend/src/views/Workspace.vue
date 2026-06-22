@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Close, ArrowDown } from '@element-plus/icons-vue'
 import { useWindowManagerStore, saveTabs } from '../stores/windowManager'
+import { loadCustomPlugins } from '../tools/customRegistry'
 import Sidebar from '../components/Sidebar.vue'
 
 const windowManager = useWindowManagerStore()
@@ -98,6 +99,8 @@ const closeOthersFromToolbar = () => {
 import { onMounted, onUnmounted } from 'vue'
 onMounted(() => {
   document.addEventListener('click', closeContextMenu)
+  // 刷新自定义插件列表，确保后台禁用的插件不再显示
+  loadCustomPlugins()
 })
 onUnmounted(() => {
   document.removeEventListener('click', closeContextMenu)
