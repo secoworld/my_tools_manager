@@ -51,18 +51,27 @@ public class PluginController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadPlugin(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadPlugin(@RequestParam("file") MultipartFile file,
+                                          @RequestParam(value = "force", defaultValue = "false") boolean force) {
         try {
-            PluginEntity entity = pluginService.uploadPlugin(file);
+            PluginEntity entity = pluginService.uploadPlugin(file, force);
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
-            result.put("message", "插件上传成功");
+            result.put("message", force ? "插件更新成功" : "插件上传成功");
             result.put("plugin", entity);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             Map<String, Object> error = new HashMap<>();
             error.put("success", false);
-            error.put("message", e.getMessage());
+            // 检查是否是插件已存在的特殊情况
+            if (e.getMessage() != null && e.getMessage().startsWith("PLUGIN_EXISTS:")) {
+                String pluginId = e.getMessage().substring("PLUGIN_EXISTS:".length());
+                error.put("code", "PLUGIN_EXISTS");
+                error.put("pluginId", pluginId);
+                error.put("message", "插件 ID 已存在: " + pluginId + "，是否更新？");
+            } else {
+                error.put("message", e.getMessage());
+            }
             return ResponseEntity.badRequest().body(error);
         }
     }

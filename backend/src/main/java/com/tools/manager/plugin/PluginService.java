@@ -137,7 +137,7 @@ public class PluginService {
     }
 
     @Transactional
-    public PluginEntity uploadPlugin(MultipartFile file) {
+    public PluginEntity uploadPlugin(MultipartFile file, boolean force) {
         if (file == null || file.isEmpty()) {
             throw new RuntimeException("上传文件为空");
         }
@@ -189,15 +189,17 @@ public class PluginService {
         }
 
         String pluginId;
+        JsonNode manifest;
         try {
-            JsonNode manifest = objectMapper.readTree(manifestJson);
+            manifest = objectMapper.readTree(manifestJson);
             pluginId = manifest.get("id").asText();
         } catch (Exception e) {
             throw new RuntimeException("解析 manifest 失败: " + e.getMessage(), e);
         }
 
-        if (pluginRepository.findByPluginId(pluginId).isPresent()) {
-            throw new RuntimeException("插件 ID 已存在: " + pluginId);
+        boolean exists = pluginRepository.findByPluginId(pluginId).isPresent();
+        if (exists && !force) {
+            throw new RuntimeException("PLUGIN_EXISTS:" + pluginId);
         }
 
         Path pluginDir = Paths.get(pluginsDir, pluginId);
@@ -223,8 +225,15 @@ public class PluginService {
         }
 
         try {
-            JsonNode manifest = objectMapper.readTree(manifestJson);
             PluginEntity entity = parseManifestToEntity(manifest);
+            if (exists) {
+                // 更新已有插件：保留 enabled 和 visibility 设置
+                PluginEntity existing = pluginRepository.findByPluginId(pluginId).get();
+                entity.setId(existing.getId());
+                entity.setEnabled(existing.getEnabled());
+                entity.setVisibility(existing.getVisibility());
+                log.info("更新插件: {} v{}", pluginId, entity.getVersion());
+            }
             return pluginRepository.save(entity);
         } catch (Exception e) {
             throw new RuntimeException("解析 manifest 并保存失败: " + e.getMessage(), e);

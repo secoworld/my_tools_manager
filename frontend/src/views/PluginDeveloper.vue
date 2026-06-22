@@ -2,7 +2,29 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download, Upload, RefreshLeft, EditPen, Document, Cellphone } from '@element-plus/icons-vue'
+import {
+  Document as IconDocument, Lock as IconLock, Clock as IconClock,
+  EditPen as IconEditPen, Coin as IconCoin, Grid as IconGrid,
+  Histogram as IconHistogram, Connection as IconConnection,
+  DocumentCopy as IconDocumentCopy, Files as IconFiles, Tools as IconTools
+} from '@element-plus/icons-vue'
 import JSZip from 'jszip'
+
+// 可选图标列表
+const iconOptions = [
+  { label: 'Tools（工具）', value: 'Tools', icon: IconTools },
+  { label: 'Document（文档）', value: 'Document', icon: IconDocument },
+  { label: 'Lock（锁）', value: 'Lock', icon: IconLock },
+  { label: 'Clock（时钟）', value: 'Clock', icon: IconClock },
+  { label: 'EditPen（编辑）', value: 'EditPen', icon: IconEditPen },
+  { label: 'Coin（硬币）', value: 'Coin', icon: IconCoin },
+  { label: 'Grid（网格）', value: 'Grid', icon: IconGrid },
+  { label: 'Histogram（柱状图）', value: 'Histogram', icon: IconHistogram },
+  { label: 'Connection（连接）', value: 'Connection', icon: IconConnection },
+  { label: 'DocumentCopy（文档副本）', value: 'DocumentCopy', icon: IconDocumentCopy },
+  { label: 'Files（文件）', value: 'Files', icon: IconFiles }
+]
+const iconMap = Object.fromEntries(iconOptions.map(o => [o.value, o.icon]))
 
 // ========== 默认示例 ==========
 const DEFAULT_MANIFEST = {
@@ -234,6 +256,26 @@ async function handleFileChange(event) {
 // ========== 上传到服务器 ==========
 const uploading = ref(false)
 
+async function doUpload(token, force = false) {
+  const manifestJson = JSON.stringify(manifest.value, null, 2)
+  const zip = new JSZip()
+  zip.file('manifest.json', manifestJson)
+  zip.file(manifest.value.entryFile || 'index.html', htmlCode.value)
+  const blob = await zip.generateAsync({ type: 'blob' })
+
+  const formData = new FormData()
+  const fileName = `${manifest.value.id || 'plugin'}.zip`
+  formData.append('file', blob, fileName)
+
+  const url = force ? '/api/plugins/upload?force=true' : '/api/plugins/upload'
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  })
+  return await response.json()
+}
+
 async function handleUploadToServer() {
   // 检查是否登录
   const token = localStorage.getItem('admin-token')
@@ -244,30 +286,39 @@ async function handleUploadToServer() {
 
   try {
     uploading.value = true
-    // 先打包
-    const manifestJson = JSON.stringify(manifest.value, null, 2)
-    const zip = new JSZip()
-    zip.file('manifest.json', manifestJson)
-    zip.file(manifest.value.entryFile || 'index.html', htmlCode.value)
-    const blob = await zip.generateAsync({ type: 'blob' })
+    let result = await doUpload(token, false)
 
-    // 上传
-    const formData = new FormData()
-    const fileName = `${manifest.value.id || 'plugin'}.zip`
-    formData.append('file', blob, fileName)
-
-    const response = await fetch('/api/plugins/upload', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    })
-    const result = await response.json()
-
-    if (response.ok && result.id) {
-      ElMessage.success('插件上传成功，已添加到插件列表')
-    } else {
-      ElMessage.error(result.message || '上传失败')
+    if (result.success) {
+      ElMessage.success(result.message || '插件上传成功')
+      return
     }
+
+    // 插件已存在，提示是否更新
+    if (result.code === 'PLUGIN_EXISTS') {
+      try {
+        await ElMessageBox.confirm(
+          `${result.message}\n更新将覆盖旧版本文件，保留启用状态和显示范围设置。`,
+          '插件已存在',
+          {
+            confirmButtonText: '确认更新',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        // 用户确认更新
+        result = await doUpload(token, true)
+        if (result.success) {
+          ElMessage.success(result.message || '插件更新成功')
+        } else {
+          ElMessage.error(result.message || '更新失败')
+        }
+      } catch {
+        // 用户取消
+      }
+      return
+    }
+
+    ElMessage.error(result.message || '上传失败')
   } catch (e) {
     ElMessage.error('上传失败: ' + e.message)
   } finally {
@@ -343,7 +394,29 @@ onMounted(() => {
                   />
                 </el-form-item>
                 <el-form-item label="图标">
-                  <el-input v-model="manifest.icon" placeholder="Element Plus 图标名，如: Tools" />
+                  <el-select
+                    v-model="manifest.icon"
+                    placeholder="选择图标"
+                    style="width: 100%"
+                    filterable
+                  >
+                    <template #prefix>
+                      <el-icon v-if="iconMap[manifest.icon]">
+                        <component :is="iconMap[manifest.icon]" />
+                      </el-icon>
+                    </template>
+                    <el-option
+                      v-for="opt in iconOptions"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    >
+                      <span style="display: flex; align-items: center; gap: 8px;">
+                        <el-icon><component :is="opt.icon" /></el-icon>
+                        <span>{{ opt.label }}</span>
+                      </span>
+                    </el-option>
+                  </el-select>
                 </el-form-item>
                 <el-form-item label="分类">
                   <el-input v-model="manifest.category" placeholder="如: 自定义" />

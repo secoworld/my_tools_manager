@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CopyDocument, Delete, Calendar } from '@element-plus/icons-vue'
+import { CopyDocument, Delete, QuestionFilled, Promotion } from '@element-plus/icons-vue'
 import { useToolState } from '../composables/useToolState'
 
 const props = defineProps({
@@ -45,46 +45,34 @@ const calculate = () => {
   }
 
   try {
-    // 验证只包含允许的字符：数字、运算符、括号、空格、小数点
-    // 允许: 0-9 + - * / % ^ ( ) . 空格 << >> & | ~
     const sanitized = expr.replace(/\s+/g, '')
-    // 临时替换 << >> 为单字符占位符便于验证
     const tempExpr = sanitized.replace(/<<</g, '\x01').replace(/>>/g, '\x02')
     const validPattern = /^[0-9+\-*/%^().&|\x01\x02~]+$/
     if (!validPattern.test(tempExpr)) {
       throw new Error('包含不支持的字符')
     }
 
-    // 将 ^ 替换为 ** （JS 幂运算）
-    // 将 << 替换为 << （JS 原生支持）
-    // 将 >> 替换为 >> （JS 原生支持）
     let jsExpr = sanitized.replace(/\^/g, '**')
-
-    // 使用 Function 构造器安全求值（比 eval 稍安全）
     const value = Function('"use strict"; return (' + jsExpr + ')')()
 
     if (value === undefined || value === null || Number.isNaN(value)) {
       throw new Error('计算结果无效')
     }
 
-    // 格式化结果
     let formatted
     if (Number.isInteger(value)) {
       formatted = value.toString()
     } else {
-      // 浮点数保留 10 位小数，去掉末尾的 0
       formatted = parseFloat(value.toFixed(10)).toString()
     }
 
     result.value = formatted
 
-    // 添加到历史记录
     history.value.unshift({
       expression: expr,
       result: formatted,
       time: new Date().toLocaleTimeString()
     })
-    // 保留最近 20 条
     if (history.value.length > 20) {
       history.value = history.value.slice(0, 20)
     }
@@ -94,18 +82,15 @@ const calculate = () => {
   }
 }
 
-// 清空
 const clearAll = () => {
   expression.value = ''
   result.value = ''
 }
 
-// 清空历史
 const clearHistory = () => {
   history.value = []
 }
 
-// 复制结果
 const copyResult = () => {
   if (!result.value) return
   navigator.clipboard.writeText(result.value).then(() => {
@@ -113,20 +98,19 @@ const copyResult = () => {
   })
 }
 
-// 点击历史记录填入
 const useHistory = (item) => {
   expression.value = item.expression
   result.value = item.result
 }
 
-// 快捷输入
 const appendOp = (op) => {
   expression.value += op
 }
 
-// 键盘回车计算
-const onKeyup = (e) => {
-  if (e.key === 'Enter') {
+// 键盘回车计算（Shift+Enter 换行，Enter 计算）
+const onKeydown = (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
     calculate()
   }
 }
@@ -134,57 +118,66 @@ const onKeyup = (e) => {
 
 <template>
   <div class="calculator-tool">
-    <div class="toolbar">
-      <el-button type="primary" size="small" @click="calculate">计算</el-button>
-      <el-button size="small" :icon="Delete" @click="clearAll">清空</el-button>
-      <el-popover placement="bottom" :width="280" trigger="hover">
-        <template #reference>
-          <el-button size="small" circle>
-            <el-icon><QuestionFilled /></el-icon>
-          </el-button>
-        </template>
-        <div class="help-content">
-          <p style="font-weight: bold; margin-bottom: 8px;">支持的运算符</p>
-          <div v-for="item in operators" :key="item.op" class="op-item">
-            <code>{{ item.op }}</code> — {{ item.desc }}
-          </div>
-          <p style="margin-top: 8px; color: #999; font-size: 12px;">
-            支持括号 () 改变优先级<br>
-            回车键快速计算
-          </p>
-        </div>
-      </el-popover>
-    </div>
-
-    <div class="content">
-      <div class="input-area">
-        <div class="label">输入算式</div>
-        <el-input
-          v-model="expression"
-          type="textarea"
-          :autosize="{ minRows: 2, maxRows: 6 }"
-          placeholder="例如: 2 + 3 * 4 或 1 << 8 或 255 & 0x0F"
-          @keyup="onKeyup"
-          style="font-family: 'Consolas', monospace;"
-        />
-        <!-- 快捷运算符 -->
-        <div class="quick-ops">
-          <el-button v-for="op in ['+', '-', '*', '/', '%', '^', '<<', '>>', '&', '|', '(', ')']"
-            :key="op"
-            size="small"
-            @click="appendOp(op)"
-          >{{ op }}</el-button>
+    <!-- 输入区 -->
+    <div class="input-section">
+      <div class="input-header">
+        <span class="label">输入算式</span>
+        <div class="header-actions">
+          <el-popover placement="bottom" :width="280" trigger="hover">
+            <template #reference>
+              <el-button size="small" text :icon="QuestionFilled">运算符</el-button>
+            </template>
+            <div class="help-content">
+              <p style="font-weight: bold; margin-bottom: 8px;">支持的运算符</p>
+              <div v-for="item in operators" :key="item.op" class="op-item">
+                <code>{{ item.op }}</code> — {{ item.desc }}
+              </div>
+              <p style="margin-top: 8px; color: #999; font-size: 12px;">
+                支持括号 () 改变优先级<br>
+                回车键快速计算，Shift+Enter 换行
+              </p>
+            </div>
+          </el-popover>
+          <el-button size="small" text :icon="Delete" @click="clearAll">清空</el-button>
         </div>
       </div>
 
-      <div class="output-area">
-        <div class="label">
-          结果
-          <el-button v-if="result" size="small" text :icon="CopyDocument" @click="copyResult">复制</el-button>
-        </div>
-        <div class="result-display" :class="{ error: result.startsWith('错误') }">
-          {{ result || '—' }}
-        </div>
+      <!-- 输入框 + 计算按钮 -->
+      <div class="input-wrapper">
+        <el-input
+          v-model="expression"
+          type="textarea"
+          :autosize="{ minRows: 2, maxRows: 5 }"
+          placeholder="例如: 2 + 3 * 4 或 1 << 8"
+          @keydown="onKeydown"
+          class="expr-input"
+        />
+        <el-button
+          type="primary"
+          :icon="Promotion"
+          class="calc-btn"
+          @click="calculate"
+        >计算</el-button>
+      </div>
+
+      <!-- 快捷运算符 -->
+      <div class="quick-ops">
+        <el-button v-for="op in ['+', '-', '*', '/', '%', '^', '<<', '>>', '&', '|', '(', ')']"
+          :key="op"
+          size="small"
+          @click="appendOp(op)"
+        >{{ op }}</el-button>
+      </div>
+    </div>
+
+    <!-- 结果区 -->
+    <div class="result-section">
+      <div class="result-bar">
+        <span class="label">结果</span>
+        <el-button v-if="result" size="small" text :icon="CopyDocument" @click="copyResult">复制</el-button>
+      </div>
+      <div class="result-display" :class="{ error: result.startsWith('错误') }">
+        {{ result || '—' }}
       </div>
     </div>
 
@@ -192,7 +185,7 @@ const onKeyup = (e) => {
     <div class="history-area" v-if="history.length > 0">
       <div class="history-header">
         <span class="label">历史记录</span>
-        <el-button size="small" text @click="clearHistory">清空历史</el-button>
+        <el-button size="small" text @click="clearHistory">清空</el-button>
       </div>
       <div class="history-list">
         <div
@@ -219,37 +212,46 @@ const onKeyup = (e) => {
   gap: 8px;
 }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.label {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 500;
+}
+
+/* ========== 输入区 ========== */
+.input-section {
   flex-shrink: 0;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  min-height: 0;
-}
-
-.input-area,
-.output-area {
-  flex: 1 1 280px;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.label {
-  font-size: 13px;
-  color: #606266;
-  font-weight: 500;
+.input-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* 输入框 + 计算按钮容器 */
+.input-wrapper {
+  position: relative;
+}
+
+.expr-input :deep(.el-textarea__inner) {
+  font-family: 'Consolas', 'Courier New', monospace;
+  padding-right: 80px; /* 右侧留出按钮空间 */
+}
+
+.calc-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
 }
 
 .quick-ops {
@@ -264,32 +266,45 @@ const onKeyup = (e) => {
   font-family: 'Consolas', monospace;
 }
 
+/* ========== 结果区 ========== */
+.result-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .result-display {
-  flex: 1;
-  min-height: 60px;
-  padding: 12px;
+  padding: 8px 12px;
   background: #f5f7fa;
   border-radius: 4px;
   border: 1px solid #e4e7ed;
   font-family: 'Consolas', 'Courier New', monospace;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: #303133;
   word-break: break-all;
+  min-height: 36px;
   display: flex;
   align-items: center;
-  overflow: auto;
 }
 
 .result-display.error {
   color: #f56c6c;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: normal;
 }
 
+/* ========== 历史记录 ========== */
 .history-area {
-  flex-shrink: 0;
-  max-height: 200px;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -305,6 +320,8 @@ const onKeyup = (e) => {
   overflow-y: auto;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
+  flex: 1;
+  min-height: 0;
 }
 
 .history-item {

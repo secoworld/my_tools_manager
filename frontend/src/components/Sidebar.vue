@@ -55,7 +55,7 @@ const handleToolClick = (toolId) => {
             @click="handleToolClick(tool.id)"
           >
             <el-icon class="tool-icon">
-              <component :is="iconMap[tool.icon]" v-if="iconMap[tool.icon]" />
+              <component :is="iconMap[tool.icon] || Tools" />
             </el-icon>
             <span class="tool-name">{{ tool.name }}</span>
             <el-tag v-if="tool.needBackend" size="small" type="warning" effect="plain">后端</el-tag>

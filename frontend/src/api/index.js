@@ -122,10 +122,11 @@ export const pluginApi = {
   getContent(pluginId) {
     return fetch(`${PLUGIN_BASE}/${pluginId}/content`).then(res => res.text())
   },
-  upload(file, token) {
+  upload(file, token, force = false) {
     const formData = new FormData()
     formData.append('file', file)
-    return fetch(`${PLUGIN_BASE}/upload`, {
+    const url = force ? `${PLUGIN_BASE}/upload?force=true` : `${PLUGIN_BASE}/upload`
+    return fetch(url, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData

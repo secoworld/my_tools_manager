@@ -2,8 +2,8 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { pluginApi } from '../api'
-import { ElMessage } from 'element-plus'
-import { Upload, ArrowRight, Check, WarningFilled, Close } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Upload, ArrowRight, Check, WarningFilled, Close, RefreshRight } from '@element-plus/icons-vue'
 
 const props = defineProps({
   visible: {
@@ -62,13 +62,39 @@ const goPrev = () => {
 }
 
 // 确认上传
-const confirmUpload = async () => {
+const confirmUpload = async (force = false) => {
   uploading.value = true
   uploadResult.value = null
   try {
-    const res = await pluginApi.upload(selectedFile.value, auth.token)
+    const res = await pluginApi.upload(selectedFile.value, auth.token, force)
     if (res.success) {
       uploadResult.value = { success: true, message: res.message || '插件上传成功' }
+    } else if (res.code === 'PLUGIN_EXISTS') {
+      // 插件已存在，提示是否更新
+      uploading.value = false
+      try {
+        await ElMessageBox.confirm(
+          `${res.message}\n更新将覆盖旧版本文件，保留启用状态和显示范围设置。`,
+          '插件已存在',
+          {
+            confirmButtonText: '确认更新',
+            cancelButtonText: '取消',
+            type: 'warning',
+            distinguishCancelAndClose: true
+          }
+        )
+        // 用户确认更新，重新上传 with force=true
+        uploading.value = true
+        const updateRes = await pluginApi.upload(selectedFile.value, auth.token, true)
+        if (updateRes.success) {
+          uploadResult.value = { success: true, message: updateRes.message || '插件更新成功' }
+        } else {
+          uploadResult.value = { success: false, message: updateRes.message || '更新失败' }
+        }
+      } catch (action) {
+        // 用户取消
+        uploadResult.value = { success: false, message: '已取消更新' }
+      }
     } else {
       uploadResult.value = { success: false, message: res.message || '上传失败' }
     }
