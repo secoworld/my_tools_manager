@@ -85,6 +85,11 @@ export const authApi = {
       },
       body: JSON.stringify({ oldPassword, newPassword })
     }).then(async res => {
+      if (res.status === 401) {
+        localStorage.removeItem('admin-token')
+        window.dispatchEvent(new CustomEvent('auth-expired'))
+        return { success: false, message: '登录已过期，请重新登录' }
+      }
       const text = await res.text()
       try {
         return JSON.parse(text)
@@ -102,7 +107,14 @@ export const authApi = {
   profile(token) {
     return fetch(`${ADMIN_BASE}/profile`, {
       headers: { 'Authorization': `Bearer ${token}` }
-    }).then(res => res.json())
+    }).then(async res => {
+      if (res.status === 401) {
+        localStorage.removeItem('admin-token')
+        window.dispatchEvent(new CustomEvent('auth-expired'))
+        return { success: false, message: '登录已过期' }
+      }
+      return res.json()
+    })
   }
 }
 
@@ -110,14 +122,35 @@ export const authApi = {
 
 const PLUGIN_BASE = '/api/plugins'
 
+// 带认证的 fetch 封装，自动处理 401 过期
+function fetchWithAuth(url, options = {}) {
+  const token = localStorage.getItem('admin-token')
+  const headers = { ...options.headers }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return fetch(url, { ...options, headers }).then(async res => {
+    if (res.status === 401) {
+      // Token 过期，清除并触发全局事件
+      localStorage.removeItem('admin-token')
+      window.dispatchEvent(new CustomEvent('auth-expired'))
+      throw new Error('登录已过期')
+    }
+    const text = await res.text()
+    try {
+      return JSON.parse(text)
+    } catch {
+      return { success: false, message: `服务器返回了非JSON响应 (HTTP ${res.status})` }
+    }
+  })
+}
+
 export const pluginApi = {
   getEnabled() {
     return fetch(PLUGIN_BASE).then(res => res.json())
   },
   getAll(token) {
-    return fetch(`${PLUGIN_BASE}/all`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }).then(res => res.json())
+    return fetchWithAuth(`${PLUGIN_BASE}/all`)
   },
   getContent(pluginId) {
     return fetch(`${PLUGIN_BASE}/${pluginId}/content`).then(res => res.text())
@@ -126,38 +159,31 @@ export const pluginApi = {
     const formData = new FormData()
     formData.append('file', file)
     const url = force ? `${PLUGIN_BASE}/upload?force=true` : `${PLUGIN_BASE}/upload`
-    return fetch(url, {
+    return fetchWithAuth(url, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
       body: formData
-    }).then(res => res.json())
+    })
   },
   delete(pluginId, token) {
-    return fetch(`${PLUGIN_BASE}/${pluginId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    }).then(res => res.json())
+    return fetchWithAuth(`${PLUGIN_BASE}/${pluginId}`, {
+      method: 'DELETE'
+    })
   },
   enable(pluginId, token) {
-    return fetch(`${PLUGIN_BASE}/${pluginId}/enable`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` }
-    }).then(res => res.json())
+    return fetchWithAuth(`${PLUGIN_BASE}/${pluginId}/enable`, {
+      method: 'PUT'
+    })
   },
   disable(pluginId, token) {
-    return fetch(`${PLUGIN_BASE}/${pluginId}/disable`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` }
-    }).then(res => res.json())
+    return fetchWithAuth(`${PLUGIN_BASE}/${pluginId}/disable`, {
+      method: 'PUT'
+    })
   },
   updateVisibility(pluginId, visibility, token) {
-    return fetch(`${PLUGIN_BASE}/${pluginId}/visibility`, {
+    return fetchWithAuth(`${PLUGIN_BASE}/${pluginId}/visibility`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visibility })
-    }).then(res => res.json())
+    })
   }
 }

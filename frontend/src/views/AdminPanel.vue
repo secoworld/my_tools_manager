@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { pluginApi } from '../api'
@@ -21,6 +21,13 @@ const uploadVisible = ref(false)
 const previewVisible = ref(false)
 const previewPluginId = ref('')
 const previewPluginName = ref('')
+
+// 监听 auth-expired 事件，自动跳转登录页
+const handleAuthExpired = () => {
+  ElMessage.warning('登录已过期，请重新登录')
+  auth.setToken('')
+  router.push('/admin/login')
+}
 
 // 显示范围选项
 const visibilityOptions = [
@@ -127,13 +134,18 @@ const goChangePassword = () => {
 }
 
 onMounted(async () => {
+  window.addEventListener('auth-expired', handleAuthExpired)
   // 验证 token 是否有效
   const profile = await auth.getProfile()
-  if (!profile) {
+  if (!profile || !profile.success) {
     router.push('/admin/login')
     return
   }
   loadPlugins()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('auth-expired', handleAuthExpired)
 })
 </script>
 

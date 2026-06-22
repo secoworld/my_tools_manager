@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage } from 'element-plus'
@@ -10,6 +10,9 @@ const auth = useAuthStore()
 
 const loginFormRef = ref(null)
 const loading = ref(false)
+const rememberPassword = ref(false)
+
+const CREDENTIALS_KEY = 'saved-credentials'
 
 const loginForm = reactive({
   username: '',
@@ -20,6 +23,21 @@ const loginRules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
+
+// 页面加载时，读取保存的凭据
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem(CREDENTIALS_KEY)
+    if (saved) {
+      const credentials = JSON.parse(atob(saved))
+      loginForm.username = credentials.username || ''
+      loginForm.password = credentials.password || ''
+      rememberPassword.value = true
+    }
+  } catch {
+    // 解析失败，忽略
+  }
+})
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
@@ -33,6 +51,16 @@ const handleLogin = async () => {
   try {
     const res = await auth.login(loginForm.username, loginForm.password)
     if (res.success) {
+      // 保存或清除凭据
+      if (rememberPassword.value) {
+        const credentials = btoa(JSON.stringify({
+          username: loginForm.username,
+          password: loginForm.password
+        }))
+        localStorage.setItem(CREDENTIALS_KEY, credentials)
+      } else {
+        localStorage.removeItem(CREDENTIALS_KEY)
+      }
       ElMessage.success('登录成功')
       if (auth.mustChangePassword) {
         router.push('/admin/password')
@@ -86,6 +114,9 @@ const handleLogin = async () => {
             clearable
           />
         </el-form-item>
+        <div class="login-options">
+          <el-checkbox v-model="rememberPassword">记住密码</el-checkbox>
+        </div>
         <el-form-item>
           <el-button
             type="primary"
@@ -160,6 +191,12 @@ const handleLogin = async () => {
   height: 44px;
   font-size: 16px;
   letter-spacing: 4px;
+}
+
+.login-options {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
 .login-hint {

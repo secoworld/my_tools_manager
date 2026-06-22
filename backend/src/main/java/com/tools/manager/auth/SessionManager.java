@@ -15,7 +15,7 @@ public class SessionManager {
 
     private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-    private static final int TOKEN_EXPIRY_HOURS = 12;
+    private static final int TOKEN_EXPIRY_HOURS = 24;
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final int LOCK_DURATION_MINUTES = 15;
 

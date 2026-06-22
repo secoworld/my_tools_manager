@@ -116,6 +116,168 @@ const DEFAULT_HTML = `<div id="app">
   }).mount('#app')
 <\/script>`
 
+// ========== 进制转换示例 ==========
+const CONVERTER_MANIFEST = {
+  id: 'base-converter',
+  name: '进制转换工具',
+  version: '1.0.0',
+  description: '支持二进制、八进制、十进制、十六进制之间的互相转换',
+  icon: 'Histogram',
+  category: '计算工具',
+  author: '开发者',
+  entryFile: 'index.html',
+  visibility: 'ALL',
+  needBackend: false
+}
+
+const CONVERTER_HTML = `<div id="app">
+  <h1>进制转换工具</h1>
+  <p class="desc">输入任意进制的数值，自动转换为其他进制</p>
+  <div class="converter">
+    <div class="input-row" v-for="item in bases" :key="item.base">
+      <label>{{ item.label }}</label>
+      <div class="input-wrap">
+        <input
+          v-model="item.value"
+          :placeholder="item.placeholder"
+          @input="onInput(item)"
+          @focus="onFocus(item)"
+        />
+        <span class="base-tag">{{ item.tag }}</span>
+      </div>
+    </div>
+  </div>
+  <div v-if="error" class="error">{{ error }}</div>
+</div>
+
+<style>
+  #app {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 20px;
+    color: #333;
+  }
+  h1 {
+    color: #409eff;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .desc {
+    color: #909399;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+  .converter {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .input-row label {
+    width: 70px;
+    font-size: 13px;
+    color: #606266;
+    flex-shrink: 0;
+  }
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .input-wrap input {
+    width: 100%;
+    padding: 8px 50px 8px 12px;
+    border: 2px solid #dcdfe6;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .input-wrap input:focus {
+    border-color: #409eff;
+  }
+  .base-tag {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: #909399;
+    background: #f0f2f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .error {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #fef0f0;
+    color: #f56c6c;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+</style>
+
+<script src="/vendor/vue.global.js"><\/script>
+<script>
+  const { createApp, ref } = Vue
+  createApp({
+    setup() {
+      const bases = ref([
+        { base: 2, label: '二进制', tag: 'BIN', value: '', placeholder: '0-1' },
+        { base: 8, label: '八进制', tag: 'OCT', value: '', placeholder: '0-7' },
+        { base: 10, label: '十进制', tag: 'DEC', value: '', placeholder: '0-9' },
+        { base: 16, label: '十六进制', tag: 'HEX', value: '', placeholder: '0-9, A-F' }
+      ])
+      const error = ref('')
+      const currentBase = ref(10)
+
+      const patterns = {
+        2: /^[01]*$/,
+        8: /^[0-7]*$/,
+        10: /^[0-9]*$/,
+        16: /^[0-9a-fA-F]*$/
+      }
+
+      function onInput(item) {
+        const val = item.value.trim()
+        if (!val) {
+          error.value = ''
+          bases.value.forEach(b => { if (b !== item) b.value = '' })
+          return
+        }
+        if (!patterns[item.base].test(val)) {
+          error.value = item.label + '只能包含: ' + item.placeholder
+          return
+        }
+        error.value = ''
+        currentBase.value = item.base
+        const decimal = parseInt(val, item.base)
+        if (isNaN(decimal)) {
+          error.value = '转换失败'
+          return
+        }
+        bases.value.forEach(b => {
+          if (b.base !== item.base) {
+            b.value = decimal.toString(b.base).toUpperCase()
+          }
+        })
+      }
+
+      return { bases, error, onInput, onFocus: (item) => { currentBase.value = item.base } }
+    }
+  }).mount('#app')
+<\/script>`
+
+// ========== 示例列表 ==========
+const EXAMPLES = [
+  { name: '基础示例（Vue计数器）', manifest: DEFAULT_MANIFEST, html: DEFAULT_HTML },
+  { name: '进制转换工具', manifest: CONVERTER_MANIFEST, html: CONVERTER_HTML }
+]
+
 // ========== 状态 ==========
 const STORAGE_KEY = 'plugin-developer-state'
 
@@ -124,6 +286,7 @@ const htmlCode = ref(DEFAULT_HTML)
 const activeTab = ref('manifest')
 const previewKey = ref(0)
 const previewHtml = ref('')
+const selectedExample = ref('基础示例（Vue计数器）')
 
 // ========== 持久化 ==========
 function saveState() {
@@ -162,19 +325,44 @@ watch(htmlCode, () => {
   debounceTimer = setTimeout(updatePreview, 400)
 }, { immediate: false })
 
+// ========== 加载示例 ==========
+function loadExample(exampleName) {
+  const example = EXAMPLES.find(e => e.name === exampleName)
+  if (example) {
+    manifest.value = { ...example.manifest }
+    htmlCode.value = example.html
+    updatePreview()
+    saveState()
+  }
+}
+
 // ========== 重置 ==========
 function handleReset() {
-  ElMessageBox.confirm('确定要重置为默认示例吗？当前编辑的内容将丢失。', '重置确认', {
+  ElMessageBox.confirm('确定要重置为当前示例吗？当前编辑的内容将丢失。', '重置确认', {
     confirmButtonText: '确定重置',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    manifest.value = { ...DEFAULT_MANIFEST }
-    htmlCode.value = DEFAULT_HTML
-    updatePreview()
-    saveState()
-    ElMessage.success('已重置为默认示例')
+    loadExample(selectedExample.value)
+    ElMessage.success('已重置为' + selectedExample.value)
   }).catch(() => {})
+}
+
+// ========== 切换示例 ==========
+function handleExampleChange(name) {
+  ElMessageBox.confirm('切换示例将覆盖当前编辑的内容，确定切换吗？', '切换示例', {
+    confirmButtonText: '确定切换',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    loadExample(name)
+    ElMessage.success('已加载示例: ' + name)
+  }).catch(() => {
+    // 用户取消，恢复选择
+    selectedExample.value = EXAMPLES.find(e =>
+      e.manifest.id === manifest.value.id
+    )?.name || selectedExample.value
+  })
 }
 
 // ========== 下载插件包 ==========
@@ -348,6 +536,20 @@ onMounted(() => {
         <el-tag size="small" type="info" effect="plain">实时预览</el-tag>
       </div>
       <div class="pd-header-right">
+        <el-select
+          v-model="selectedExample"
+          placeholder="选择示例"
+          size="default"
+          style="width: 180px"
+          @change="handleExampleChange"
+        >
+          <el-option
+            v-for="example in EXAMPLES"
+            :key="example.name"
+            :label="example.name"
+            :value="example.name"
+          />
+        </el-select>
         <el-button :icon="RefreshLeft" @click="handleReset">重置示例</el-button>
         <el-button :icon="Download" @click="handleDownload">下载插件包</el-button>
         <el-button :icon="Upload" @click="handleUploadClick">导入插件包</el-button>
