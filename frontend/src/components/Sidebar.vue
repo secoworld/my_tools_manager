@@ -1,8 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { Document, Lock, Clock, EditPen, Coin, Grid, Histogram, Connection, DocumentCopy, Files } from '@element-plus/icons-vue'
+import { Document, Lock, Clock, EditPen, Coin, Grid, Histogram, Connection, DocumentCopy, Files, Tools } from '@element-plus/icons-vue'
 import { useWindowManagerStore } from '../stores/windowManager'
 import { getToolList } from '../tools/registry'
+import { getCustomPlugins } from '../tools/customRegistry'
 
 const windowManager = useWindowManagerStore()
 
@@ -17,12 +18,13 @@ const iconMap = {
   Histogram,
   Connection,
   DocumentCopy,
-  Files
+  Files,
+  Tools
 }
 
-// 按 category 分组的工具列表
+// 按 category 分组的工具列表（内置 + 自定义）
 const groupedTools = computed(() => {
-  const tools = getToolList()
+  const tools = [...getToolList(), ...getCustomPlugins('WORKSPACE')]
   const groups = {}
   tools.forEach((tool) => {
     if (!groups[tool.category]) {

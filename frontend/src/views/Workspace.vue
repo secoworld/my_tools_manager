@@ -155,7 +155,7 @@ onUnmounted(() => {
             v-show="win.instanceId === activeWindowId"
             class="window-pane"
           >
-            <component :is="win.component" :instance-id="win.instanceId" />
+            <component :is="win.component" :instance-id="win.instanceId" :plugin-id="win.toolId" />
           </div>
         </template>
         <!-- 空状态 -->

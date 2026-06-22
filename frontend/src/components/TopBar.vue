@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-import { Tools, Document, Operation } from '@element-plus/icons-vue'
+import { Tools, Document, Operation, Setting, EditPen } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,9 +42,26 @@ const goTo = (path) => {
         <el-icon><Document /></el-icon>
         <span>命令库</span>
       </div>
+      <div
+        class="nav-item"
+        :class="{ active: route.path === '/dev' }"
+        @click="goTo('/dev')"
+      >
+        <el-icon><EditPen /></el-icon>
+        <span>插件开发</span>
+      </div>
     </div>
 
-    <div class="top-bar-right" />
+    <div class="top-bar-right">
+      <div
+        class="nav-item"
+        :class="{ active: route.path.startsWith('/admin') }"
+        @click="goTo('/admin')"
+      >
+        <el-icon><Setting /></el-icon>
+        <span>后台管理</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -108,5 +125,7 @@ const goTo = (path) => {
 
 .top-bar-right {
   flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

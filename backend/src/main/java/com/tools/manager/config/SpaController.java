@@ -19,7 +19,11 @@ public class SpaController {
         "/dashboard",
         "/dashboard/**",
         "/commands",
-        "/commands/**"
+        "/commands/**",
+        "/dev",
+        "/dev/**",
+        "/admin",
+        "/admin/**"
     })
     public String forward() {
         return "forward:/index.html";

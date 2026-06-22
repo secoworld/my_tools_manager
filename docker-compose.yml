@@ -10,9 +10,16 @@ services:
     environment:
       - JAVA_OPTS=-Xms256m -Xmx512m
     restart: unless-stopped
+    volumes:
+      - tools-manager-data:/app/data
+      - tools-manager-plugins:/app/plugins
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/api/tools"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  tools-manager-data:
+  tools-manager-plugins:

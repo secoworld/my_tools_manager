@@ -1,0 +1,75 @@
+<div id="app">
+  <h1>{{ title }}</h1>
+  <p>{{ desc }}</p>
+  <div class="counter">
+    <button @click="count--">-</button>
+    <span>{{ count }}</span>
+    <button @click="count++">+</button>
+  </div>
+  <div class="input-group">
+    <input v-model="name" placeholder="输入你的名字" />
+    <p v-if="name">你好，{{ name }}！</p>
+  </div>
+</div>
+
+<style>
+  #app {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 24px;
+    color: #333;
+  }
+  h1 {
+    color: #409eff;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+  p { color: #666; margin-bottom: 16px; }
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .counter button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: #409eff;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .counter button:hover { background: #66b1ff; }
+  .counter span {
+    font-size: 24px;
+    font-weight: 700;
+    min-width: 40px;
+    text-align: center;
+  }
+  .input-group input {
+    padding: 8px 14px;
+    border: 2px solid #dcdfe6;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-group input:focus { border-color: #409eff; }
+  .input-group p { margin-top: 8px; color: #67c23a; }
+</style>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+  const { createApp, ref } = Vue
+  createApp({
+    setup() {
+      const title = ref('Hello Plugin!')
+      const desc = ref('这是一个使用 Vue 3 编写的插件示例')
+      const count = ref(0)
+      const name = ref('')
+      return { title, desc, count, name }
+    }
+  }).mount('#app')
+</script>

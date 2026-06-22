@@ -63,3 +63,100 @@ export default {
   updateCommand,
   deleteCommand
 }
+
+// ========== 认证 API ==========
+
+const ADMIN_BASE = '/api/admin'
+
+export const authApi = {
+  login(username, password) {
+    return fetch(`${ADMIN_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    }).then(res => res.json())
+  },
+  changePassword(oldPassword, newPassword, token) {
+    return fetch(`${ADMIN_BASE}/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ oldPassword, newPassword })
+    }).then(async res => {
+      const text = await res.text()
+      try {
+        return JSON.parse(text)
+      } catch {
+        return { success: false, message: `服务器返回了非JSON响应 (HTTP ${res.status})` }
+      }
+    })
+  },
+  logout(token) {
+    return fetch(`${ADMIN_BASE}/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  },
+  profile(token) {
+    return fetch(`${ADMIN_BASE}/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  }
+}
+
+// ========== 插件管理 API ==========
+
+const PLUGIN_BASE = '/api/plugins'
+
+export const pluginApi = {
+  getEnabled() {
+    return fetch(PLUGIN_BASE).then(res => res.json())
+  },
+  getAll(token) {
+    return fetch(`${PLUGIN_BASE}/all`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  },
+  getContent(pluginId) {
+    return fetch(`${PLUGIN_BASE}/${pluginId}/content`).then(res => res.text())
+  },
+  upload(file, token) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return fetch(`${PLUGIN_BASE}/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    }).then(res => res.json())
+  },
+  delete(pluginId, token) {
+    return fetch(`${PLUGIN_BASE}/${pluginId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  },
+  enable(pluginId, token) {
+    return fetch(`${PLUGIN_BASE}/${pluginId}/enable`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  },
+  disable(pluginId, token) {
+    return fetch(`${PLUGIN_BASE}/${pluginId}/disable`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => res.json())
+  },
+  updateVisibility(pluginId, visibility, token) {
+    return fetch(`${PLUGIN_BASE}/${pluginId}/visibility`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ visibility })
+    }).then(res => res.json())
+  }
+}
