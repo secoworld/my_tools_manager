@@ -155,9 +155,14 @@ export const pluginApi = {
   getContent(pluginId) {
     return fetch(`${PLUGIN_BASE}/${pluginId}/content`).then(res => res.text())
   },
-  upload(file, token, force = false) {
+  upload(file, token, force = false, filename = null) {
     const formData = new FormData()
-    formData.append('file', file)
+    // 如果是 Blob 且没有文件名，需要指定文件名，否则后端 getOriginalFilename 返回 null
+    if (filename) {
+      formData.append('file', file, filename)
+    } else {
+      formData.append('file', file)
+    }
     const url = force ? `${PLUGIN_BASE}/upload?force=true` : `${PLUGIN_BASE}/upload`
     return fetchWithAuth(url, {
       method: 'POST',
@@ -185,5 +190,78 @@ export const pluginApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visibility })
     })
+  },
+
+  // ========== 待审核插件 API ==========
+
+  /** 提交插件（非 admin 用户） */
+  submitPlugin(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return fetchWithAuth(`${PLUGIN_BASE}/submit`, {
+      method: 'POST',
+      body: formData
+    })
+  },
+
+  /** 获取待审核插件列表（admin） */
+  getPendingPlugins() {
+    return fetchWithAuth(`${PLUGIN_BASE}/pending`)
+  },
+
+  /** 获取待审核插件内容（admin） - 返回 HTML 文本，不能用 fetchWithAuth（会强制 JSON 解析） */
+  getPendingContent(pluginId) {
+    const token = localStorage.getItem('admin-token')
+    const headers = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    return fetch(`${PLUGIN_BASE}/pending/${pluginId}/content`, { headers }).then(async res => {
+      if (res.status === 401) {
+        localStorage.removeItem('admin-token')
+        window.dispatchEvent(new CustomEvent('auth-expired'))
+        throw new Error('登录已过期')
+      }
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || `请求失败 (HTTP ${res.status})`)
+      }
+      return await res.text()
+    })
+  },
+
+  /** 审核通过（admin） */
+  approvePlugin(pluginId, reviewComment = '') {
+    return fetchWithAuth(`${PLUGIN_BASE}/pending/${pluginId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewComment })
+    })
+  },
+
+  /** 审核拒绝（admin） */
+  rejectPlugin(pluginId, reviewComment = '') {
+    return fetchWithAuth(`${PLUGIN_BASE}/pending/${pluginId}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewComment })
+    })
+  },
+
+  /** 删除待审核插件（admin） */
+  deletePendingPlugin(pluginId) {
+    return fetchWithAuth(`${PLUGIN_BASE}/pending/${pluginId}`, {
+      method: 'DELETE'
+    })
+  },
+
+  /** 获取审核日志（admin） - 分页查询，按时间倒序 */
+  getAuditLogs(page = 1, size = 100) {
+    return fetchWithAuth(`${PLUGIN_BASE}/audit-logs?page=${page}&size=${size}`)
+  },
+
+  /** 根据 pluginId 获取审核日志（admin） */
+  getAuditLogsByPluginId(pluginId, page = 1, size = 100) {
+    return fetchWithAuth(`${PLUGIN_BASE}/audit-logs/${pluginId}?page=${page}&size=${size}`)
   }
 }

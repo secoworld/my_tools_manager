@@ -38,6 +38,7 @@ public class SecurityConfig {
     private static final Set<String> PUBLIC_EXACT_PATHS = Set.of(
             "/api/admin/login",
             "/api/plugins",
+            "/api/plugins/submit",
             "/",
             "/index.html",
             "/favicon.ico"
@@ -67,6 +68,7 @@ public class SecurityConfig {
                                 "/api/tools/**",
                                 "/api/commands/**",
                                 "/api/plugins",
+                                "/api/plugins/submit",
                                 "/api/plugins/*/content",
                                 "/",
                                 "/index.html",

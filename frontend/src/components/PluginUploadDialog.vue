@@ -4,11 +4,17 @@ import { useAuthStore } from '../stores/auth'
 import { pluginApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, ArrowRight, Check, WarningFilled, Close, RefreshRight } from '@element-plus/icons-vue'
+import JSZip from 'jszip'
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false
+  },
+  // 更新模式：传入要更新的插件 ID，上传时会校验 ZIP 中 manifest.json 的 id 是否一致
+  updatePluginId: {
+    type: String,
+    default: ''
   }
 })
 
@@ -22,9 +28,14 @@ const uploading = ref(false)
 
 // 选中的文件
 const selectedFile = ref(null)
+// 解析出的 manifest id（用于更新模式下的 id 一致性校验）
+const parsedPluginId = ref('')
 
-// 上传结果
-const uploadResult = ref(null) // { success, message }
+// 是否为更新模式
+const isUpdateMode = computed(() => !!props.updatePluginId)
+
+// 弹窗标题
+const dialogTitle = computed(() => isUpdateMode.value ? `更新插件 - ${props.updatePluginId}` : '上传插件')
 
 // 文件大小格式化
 const formatSize = (size) => {
@@ -35,13 +46,41 @@ const formatSize = (size) => {
 }
 
 // el-upload 自定义选择（不自动上传）
-const handleFileChange = (file) => {
+const handleFileChange = async (file) => {
   // file.raw 是原生 File 对象，已包含 name 和 size
   selectedFile.value = file.raw
+  parsedPluginId.value = ''
+
+  // 更新模式下：解析 ZIP 中的 manifest.json，校验 id 一致性
+  if (isUpdateMode.value && file.raw) {
+    try {
+      const zip = await JSZip.loadAsync(file.raw)
+      const manifestFile = zip.file('manifest.json')
+      if (!manifestFile) {
+        ElMessage.error('ZIP 包中未找到 manifest.json')
+        selectedFile.value = null
+        return
+      }
+      const manifestText = await manifestFile.async('string')
+      const parsed = JSON.parse(manifestText)
+      parsedPluginId.value = parsed.id || ''
+
+      if (parsed.id !== props.updatePluginId) {
+        ElMessage.error(`插件 ID 不一致！当前插件 ID 为 '${props.updatePluginId}'，上传包中的 ID 为 '${parsed.id}'`)
+        selectedFile.value = null
+        return
+      }
+      ElMessage.success('插件 ID 校验通过')
+    } catch (e) {
+      ElMessage.error('解析 ZIP 失败: ' + e.message)
+      selectedFile.value = null
+    }
+  }
 }
 
 const handleFileRemove = () => {
   selectedFile.value = null
+  parsedPluginId.value = ''
 }
 
 const handleExceed = () => {
@@ -66,9 +105,11 @@ const confirmUpload = async (force = false) => {
   uploading.value = true
   uploadResult.value = null
   try {
-    const res = await pluginApi.upload(selectedFile.value, auth.token, force)
+    // 更新模式下直接使用 force=true
+    const useForce = isUpdateMode.value ? true : force
+    const res = await pluginApi.upload(selectedFile.value, auth.token, useForce)
     if (res.success) {
-      uploadResult.value = { success: true, message: res.message || '插件上传成功' }
+      uploadResult.value = { success: true, message: res.message || (isUpdateMode.value ? '插件更新成功' : '插件上传成功') }
     } else if (res.code === 'PLUGIN_EXISTS') {
       // 插件已存在，提示是否更新
       uploading.value = false
@@ -127,6 +168,7 @@ const closeDialog = () => {
 const handleClosed = () => {
   step.value = 1
   selectedFile.value = null
+  parsedPluginId.value = ''
   uploadResult.value = null
   uploading.value = false
 }
@@ -137,7 +179,7 @@ const canNext = computed(() => !!selectedFile.value)
 <template>
   <el-dialog
     :model-value="visible"
-    title="上传插件"
+    :title="dialogTitle"
     width="560px"
     :close-on-click-modal="false"
     @update:model-value="(v) => emit('update:visible', v)"
@@ -154,6 +196,14 @@ const canNext = computed(() => !!selectedFile.value)
 
     <!-- 步骤 1：选择文件 -->
     <div v-if="step === 1" class="step-content">
+      <el-alert
+        v-if="isUpdateMode"
+        type="warning"
+        :closable="false"
+        show-icon
+        :title="`更新模式：上传包中的插件 ID 必须为 '${updatePluginId}'，否则将被拒绝`"
+        style="margin-bottom: 12px;"
+      />
       <el-upload
         drag
         accept=".zip"
@@ -186,12 +236,18 @@ const canNext = computed(() => !!selectedFile.value)
           <span class="info-label">文件类型</span>
           <span class="info-value">{{ selectedFile?.name?.endsWith('.zip') ? 'ZIP 压缩包' : '未知' }}</span>
         </div>
+        <div v-if="isUpdateMode && parsedPluginId" class="info-row">
+          <span class="info-label">插件 ID</span>
+          <span class="info-value" style="color: #67c23a; font-weight: 600;">{{ parsedPluginId }} ✓</span>
+        </div>
       </div>
       <el-alert
         type="info"
         :closable="false"
         show-icon
-        title="插件校验将在服务端进行，上传后系统会自动解析 manifest.json 并校验插件结构。"
+        :title="isUpdateMode
+          ? '更新将覆盖旧版本文件，保留启用状态和显示范围设置。'
+          : '插件校验将在服务端进行，上传后系统会自动解析 manifest.json 并校验插件结构。'"
       />
     </div>
 

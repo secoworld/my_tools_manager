@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Download, Upload, RefreshLeft, EditPen, Document, Cellphone } from '@element-plus/icons-vue'
+import { Download, Upload, RefreshLeft, EditPen, Document, Cellphone, FullScreen, Monitor } from '@element-plus/icons-vue'
 import {
   Document as IconDocument, Lock as IconLock, Clock as IconClock,
   EditPen as IconEditPen, Coin as IconCoin, Grid as IconGrid,
@@ -40,7 +40,7 @@ const DEFAULT_MANIFEST = {
   needBackend: false
 }
 
-const DEFAULT_HTML = `<div id="app">
+const DEFAULT_HTML = `<div id="app" v-cloak>
   <h1>{{ title }}</h1>
   <p>{{ desc }}</p>
   <div class="counter">
@@ -55,6 +55,7 @@ const DEFAULT_HTML = `<div id="app">
 </div>
 
 <style>
+  [v-cloak] { display: none; }
   #app {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     padding: 24px;
@@ -102,18 +103,31 @@ const DEFAULT_HTML = `<div id="app">
   .input-group p { margin-top: 8px; color: #67c23a; }
 </style>
 
-<script src="/vendor/vue.global.js"><\/script>
+` + '<' + 'script src="/vendor/vue.global.js">' + '<' + '/script>' + `
 <script>
-  const { createApp, ref } = Vue
-  createApp({
-    setup() {
-      const title = ref('Hello Plugin!')
-      const desc = ref('这是一个使用 Vue 3 编写的插件示例')
-      const count = ref(0)
-      const name = ref('')
-      return { title, desc, count, name }
-    }
-  }).mount('#app')
+  // 如果本地加载失败（Vue 未定义），再加载 CDN
+  if (typeof Vue === 'undefined') {
+    var s = document.createElement('script')
+    s.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
+    s.onload = initApp
+    document.head.appendChild(s)
+  } else {
+    initApp()
+  }
+
+  function initApp() {
+    var createApp = Vue.createApp
+    var ref = Vue.ref
+    createApp({
+      setup: function () {
+        var title = ref('Hello Plugin!')
+        var desc = ref('这是一个使用 Vue 3 编写的插件示例')
+        var count = ref(0)
+        var name = ref('')
+        return { title: title, desc: desc, count: count, name: name }
+      }
+    }).mount('#app')
+  }
 <\/script>`
 
 // ========== 进制转换示例 ==========
@@ -130,7 +144,7 @@ const CONVERTER_MANIFEST = {
   needBackend: false
 }
 
-const CONVERTER_HTML = `<div id="app">
+const CONVERTER_HTML = `<div id="app" v-cloak>
   <h1>进制转换工具</h1>
   <p class="desc">输入任意进制的数值，自动转换为其他进制</p>
   <div class="converter">
@@ -151,6 +165,7 @@ const CONVERTER_HTML = `<div id="app">
 </div>
 
 <style>
+  [v-cloak] { display: none; }
   #app {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     padding: 20px;
@@ -221,55 +236,72 @@ const CONVERTER_HTML = `<div id="app">
   }
 </style>
 
-<script src="/vendor/vue.global.js"><\/script>
+` + '<' + 'script src="/vendor/vue.global.js">' + '<' + '/script>' + `
 <script>
-  const { createApp, ref } = Vue
-  createApp({
-    setup() {
-      const bases = ref([
-        { base: 2, label: '二进制', tag: 'BIN', value: '', placeholder: '0-1' },
-        { base: 8, label: '八进制', tag: 'OCT', value: '', placeholder: '0-7' },
-        { base: 10, label: '十进制', tag: 'DEC', value: '', placeholder: '0-9' },
-        { base: 16, label: '十六进制', tag: 'HEX', value: '', placeholder: '0-9, A-F' }
-      ])
-      const error = ref('')
-      const currentBase = ref(10)
+  // 如果本地加载失败（Vue 未定义），再加载 CDN
+  if (typeof Vue === 'undefined') {
+    var s = document.createElement('script')
+    s.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
+    s.onload = initApp
+    document.head.appendChild(s)
+  } else {
+    initApp()
+  }
 
-      const patterns = {
-        2: /^[01]*$/,
-        8: /^[0-7]*$/,
-        10: /^[0-9]*$/,
-        16: /^[0-9a-fA-F]*$/
-      }
+  function initApp() {
+    var createApp = Vue.createApp
+    var ref = Vue.ref
+    var reactive = Vue.reactive
+    var onMounted = Vue.onMounted
+    createApp({
+      setup: function () {
+        var bases = ref([
+          { base: 2, label: '二进制', tag: 'BIN', value: '', placeholder: '0-1' },
+          { base: 8, label: '八进制', tag: 'OCT', value: '', placeholder: '0-7' },
+          { base: 10, label: '十进制', tag: 'DEC', value: '', placeholder: '0-9' },
+          { base: 16, label: '十六进制', tag: 'HEX', value: '', placeholder: '0-9, A-F' }
+        ])
+        var error = ref('')
+        var currentBase = ref(10)
 
-      function onInput(item) {
-        const val = item.value.trim()
-        if (!val) {
-          error.value = ''
-          bases.value.forEach(b => { if (b !== item) b.value = '' })
-          return
+        var patterns = {
+          2: /^[01]*$/,
+          8: /^[0-7]*$/,
+          10: /^[0-9]*$/,
+          16: /^[0-9a-fA-F]*$/
         }
-        if (!patterns[item.base].test(val)) {
-          error.value = item.label + '只能包含: ' + item.placeholder
-          return
-        }
-        error.value = ''
-        currentBase.value = item.base
-        const decimal = parseInt(val, item.base)
-        if (isNaN(decimal)) {
-          error.value = '转换失败'
-          return
-        }
-        bases.value.forEach(b => {
-          if (b.base !== item.base) {
-            b.value = decimal.toString(b.base).toUpperCase()
+
+        function onInput(item) {
+          var val = item.value.trim()
+          if (!val) {
+            error.value = ''
+            bases.value.forEach(function (b) { if (b !== item) b.value = '' })
+            return
           }
-        })
-      }
+          if (!patterns[item.base].test(val)) {
+            error.value = item.label + '只能包含: ' + item.placeholder
+            return
+          }
+          error.value = ''
+          currentBase.value = item.base
+          var decimal = parseInt(val, item.base)
+          if (isNaN(decimal)) {
+            error.value = '转换失败'
+            return
+          }
+          bases.value.forEach(function (b) {
+            if (b.base !== item.base) {
+              b.value = decimal.toString(b.base).toUpperCase()
+            }
+          })
+        }
 
-      return { bases, error, onInput, onFocus: (item) => { currentBase.value = item.base } }
-    }
-  }).mount('#app')
+        function onFocus(item) { currentBase.value = item.base }
+
+        return { bases: bases, error: error, onInput: onInput, onFocus: onFocus }
+      }
+    }).mount('#app')
+  }
 <\/script>`
 
 // ========== 示例列表 ==========
@@ -324,6 +356,31 @@ watch(htmlCode, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(updatePreview, 400)
 }, { immediate: false })
+
+// ========== 预览弹窗 / 全屏 ==========
+const dialogPreviewVisible = ref(false)
+const fullscreenPreview = ref(false)
+
+function handlePreviewDialog() {
+  dialogPreviewVisible.value = true
+}
+
+function handlePreviewFullscreen() {
+  fullscreenPreview.value = true
+  // 监听 ESC 退出全屏
+  document.addEventListener('keydown', handleEscKey)
+}
+
+function handleEscKey(e) {
+  if (e.key === 'Escape' && fullscreenPreview.value) {
+    exitFullscreen()
+  }
+}
+
+function exitFullscreen() {
+  fullscreenPreview.value = false
+  document.removeEventListener('keydown', handleEscKey)
+}
 
 // ========== 加载示例 ==========
 function loadExample(exampleName) {
@@ -444,12 +501,17 @@ async function handleFileChange(event) {
 // ========== 上传到服务器 ==========
 const uploading = ref(false)
 
-async function doUpload(token, force = false) {
+// 生成 ZIP Blob（公共函数，上传和提交审核共用）
+async function generateZipBlob() {
   const manifestJson = JSON.stringify(manifest.value, null, 2)
   const zip = new JSZip()
   zip.file('manifest.json', manifestJson)
   zip.file(manifest.value.entryFile || 'index.html', htmlCode.value)
-  const blob = await zip.generateAsync({ type: 'blob' })
+  return await zip.generateAsync({ type: 'blob' })
+}
+
+async function doUpload(token, force = false) {
+  const blob = await generateZipBlob()
 
   const formData = new FormData()
   const fileName = `${manifest.value.id || 'plugin'}.zip`
@@ -519,6 +581,57 @@ watch([manifest, htmlCode], () => {
   saveState()
 }, { deep: true })
 
+// ========== 提交审核（非 admin 用户） ==========
+const submitting = ref(false)
+
+async function handleSubmitForReview() {
+  try {
+    await ElMessageBox.confirm(
+      '提交后插件将进入待审核状态，管理员审核通过后才会显示在插件列表中。\n相同 ID 的待审核插件会被覆盖，只保留最新提交。\n\n是否继续？',
+      '提交插件审核',
+      {
+        confirmButtonText: '确认提交',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+  } catch {
+    return
+  }
+
+  try {
+    submitting.value = true
+    // 生成 ZIP blob
+    const blob = await generateZipBlob()
+    const formData = new FormData()
+    const fileName = `${manifest.value.id || 'plugin'}.zip`
+    formData.append('file', blob, fileName)
+
+    // 提交审核不需要登录，但如果已登录则带上 token 用于记录提交者
+    const token = localStorage.getItem('admin-token')
+    const headers = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    const response = await fetch('/api/plugins/submit', {
+      method: 'POST',
+      headers,
+      body: formData
+    })
+    const result = await response.json()
+
+    if (result.success) {
+      ElMessage.success(result.message || '插件提交成功，等待管理员审核')
+    } else {
+      ElMessage.error(result.message || '提交失败')
+    }
+  } catch (e) {
+    ElMessage.error('提交失败: ' + e.message)
+  } finally {
+    submitting.value = false
+  }
+}
+
 // ========== 生命周期 ==========
 onMounted(() => {
   loadState()
@@ -555,6 +668,9 @@ onMounted(() => {
         <el-button :icon="Upload" @click="handleUploadClick">导入插件包</el-button>
         <el-button type="primary" :icon="Upload" :loading="uploading" @click="handleUploadToServer">
           上传到服务器
+        </el-button>
+        <el-button type="warning" :icon="Upload" :loading="submitting" @click="handleSubmitForReview">
+          提交审核
         </el-button>
         <input
           ref="uploadRef"
@@ -676,6 +792,24 @@ onMounted(() => {
           <el-icon><Cellphone /></el-icon>
           <span>实时预览</span>
           <el-tag size="small" type="success" effect="plain">iframe 隔离</el-tag>
+          <div class="pd-preview-actions">
+            <el-tooltip content="弹窗预览" placement="bottom">
+              <el-button
+                size="small"
+                :icon="Monitor"
+                circle
+                @click="handlePreviewDialog"
+              />
+            </el-tooltip>
+            <el-tooltip content="全屏预览" placement="bottom">
+              <el-button
+                size="small"
+                :icon="FullScreen"
+                circle
+                @click="handlePreviewFullscreen"
+              />
+            </el-tooltip>
+          </div>
         </div>
         <div class="pd-preview-body">
           <iframe
@@ -686,6 +820,40 @@ onMounted(() => {
             referrerpolicy="no-referrer"
           />
         </div>
+      </div>
+    </div>
+
+    <!-- 弹窗预览 -->
+    <el-dialog
+      v-model="dialogPreviewVisible"
+      title="弹窗预览"
+      width="80%"
+      top="6vh"
+      destroy-on-close
+    >
+      <div class="pd-dialog-preview-body">
+        <iframe
+          :srcdoc="previewHtml"
+          class="pd-iframe"
+          sandbox="allow-scripts allow-same-origin"
+          referrerpolicy="no-referrer"
+        />
+      </div>
+    </el-dialog>
+
+    <!-- 全屏预览 -->
+    <div v-if="fullscreenPreview" class="pd-fullscreen-overlay">
+      <div class="pd-fullscreen-header">
+        <span class="pd-fullscreen-title">全屏预览</span>
+        <el-button type="danger" size="small" @click="exitFullscreen">退出全屏 (ESC)</el-button>
+      </div>
+      <div class="pd-fullscreen-body">
+        <iframe
+          :srcdoc="previewHtml"
+          class="pd-iframe"
+          sandbox="allow-scripts allow-same-origin"
+          referrerpolicy="no-referrer"
+        />
       </div>
     </div>
   </div>
@@ -879,6 +1047,69 @@ onMounted(() => {
   font-size: 13px;
   color: #606266;
   flex-shrink: 0;
+}
+
+.pd-preview-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.pd-dialog-preview-body {
+  width: 100%;
+  height: 70vh;
+  background: #f5f7fa;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pd-dialog-preview-body .pd-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+/* 全屏预览 */
+.pd-fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.pd-fullscreen-header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+
+.pd-fullscreen-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.pd-fullscreen-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+.pd-fullscreen-body .pd-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
 }
 
 .pd-preview-body {
