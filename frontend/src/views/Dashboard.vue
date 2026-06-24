@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch, markRaw } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, markRaw } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Search } from '@element-plus/icons-vue'
 import { toolRegistry, getToolList } from '../tools/registry'
 import { getCustomPlugins, customPlugins, loadCustomPlugins } from '../tools/customRegistry'
 import { clearToolState, clearAllToolState } from '../composables/useToolState'
@@ -32,6 +32,32 @@ const defaultSizes = {
 // 工具卡片列表
 const cards = ref([])
 const showToolPicker = ref(false)
+
+// 工具选择弹窗：搜索和分类筛选
+const toolSearch = ref('')
+const toolCategoryFilter = ref('')
+
+// 所有可用工具（内置 + 自定义）
+const allAvailableTools = computed(() => [...getToolList(), ...getCustomPlugins('DASHBOARD')])
+
+// 所有分类
+const toolCategories = computed(() => {
+  const cats = new Set(allAvailableTools.value.map(t => t.category))
+  return Array.from(cats)
+})
+
+// 筛选后的工具
+const filteredTools = computed(() => {
+  let list = allAvailableTools.value
+  if (toolCategoryFilter.value) {
+    list = list.filter(t => t.category === toolCategoryFilter.value)
+  }
+  const kw = toolSearch.value.trim().toLowerCase()
+  if (kw) {
+    list = list.filter(t => t.name.toLowerCase().includes(kw) || t.id.toLowerCase().includes(kw))
+  }
+  return list
+})
 
 // 调整大小状态
 const resizing = ref(null)
@@ -388,12 +414,38 @@ onUnmounted(() => {
     >+</div>
 
     <!-- 工具选择弹窗 -->
-    <el-dialog v-model="showToolPicker" title="选择工具" width="420px">
-      <div class="tool-picker-list">
+    <el-dialog v-model="showToolPicker" title="选择工具" width="680px" top="6vh">
+      <!-- 搜索和筛选 -->
+      <div class="tool-picker-toolbar">
+        <el-input
+          v-model="toolSearch"
+          placeholder="搜索工具名称或 ID"
+          clearable
+          :prefix-icon="Search"
+          class="tool-search-input"
+        />
+        <el-select
+          v-model="toolCategoryFilter"
+          placeholder="全部分类"
+          clearable
+          class="tool-category-select"
+        >
+          <el-option
+            v-for="cat in toolCategories"
+            :key="cat"
+            :label="cat"
+            :value="cat"
+          />
+        </el-select>
+        <span class="tool-picker-count">共 {{ filteredTools.length }} 个工具</span>
+      </div>
+
+      <!-- 工具网格 -->
+      <div class="tool-picker-grid">
         <div
-          v-for="tool in [...getToolList(), ...getCustomPlugins('DASHBOARD')]"
+          v-for="tool in filteredTools"
           :key="tool.id"
-          class="tool-picker-item"
+          class="tool-picker-card"
           @click="addTool(tool.id)"
         >
           <div class="tool-picker-info">
@@ -403,6 +455,9 @@ onUnmounted(() => {
           <span class="tool-picker-size">
             {{ defaultSizes[tool.id]?.colSpan || 4 }}×{{ defaultSizes[tool.id]?.rowSpan || 2 }}
           </span>
+        </div>
+        <div v-if="filteredTools.length === 0" class="tool-picker-empty">
+          未找到匹配的工具
         </div>
       </div>
     </el-dialog>
@@ -578,13 +633,36 @@ onUnmounted(() => {
   transform: scale(0.95);
 }
 
-.tool-picker-list {
+.tool-picker-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.tool-picker-item {
+.tool-search-input {
+  flex: 1;
+}
+
+.tool-category-select {
+  width: 160px;
+}
+
+.tool-picker-count {
+  font-size: 12px;
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.tool-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.tool-picker-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -595,9 +673,17 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.tool-picker-item:hover {
+.tool-picker-card:hover {
   border-color: #409eff;
   background-color: #ecf5ff;
+}
+
+.tool-picker-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 0;
+  color: #c0c4cc;
+  font-size: 14px;
 }
 
 .tool-picker-info {

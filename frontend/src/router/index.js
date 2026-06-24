@@ -46,6 +46,12 @@ const routes = [
     meta: { title: '插件管理', requiresAuth: true }
   },
   {
+    path: '/admin/review',
+    name: 'PluginReview',
+    component: () => import('../views/PluginReview.vue'),
+    meta: { title: '插件审核', requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }

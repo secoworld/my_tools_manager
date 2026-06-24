@@ -60,16 +60,42 @@
   .input-group p { margin-top: 8px; color: #67c23a; }
 </style>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script>
-  const { createApp, ref } = Vue
-  createApp({
-    setup() {
-      const title = ref('Hello Plugin!')
-      const desc = ref('这是一个使用 Vue 3 编写的插件示例')
-      const count = ref(0)
-      const name = ref('')
-      return { title, desc, count, name }
+  // 优先加载本地 vue.global.js，失败时回退到 CDN
+  (function loadVue(onReady) {
+    var s = document.createElement('script')
+    s.src = '/vendor/vue.global.js'
+    s.onload = function () {
+      if (window.Vue) { onReady(); return }
+      tryFallback(onReady)
     }
-  }).mount('#app')
+    s.onerror = function () { tryFallback(onReady) }
+    document.head.appendChild(s)
+
+    function tryFallback(cb) {
+      var f = document.createElement('script')
+      f.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
+      f.onload = function () { cb() }
+      f.onerror = function () {
+        document.getElementById('app').innerHTML = '<div style="padding:24px;color:#f56c6c;">Vue 加载失败，请检查网络连接</div>'
+      }
+      document.head.appendChild(f)
+    }
+  })(function () {
+    initApp()
+  })
+
+  function initApp() {
+    var createApp = Vue.createApp
+    var ref = Vue.ref
+    createApp({
+      setup: function () {
+        var title = ref('Hello Plugin!')
+        var desc = ref('这是一个使用 Vue 3 编写的插件示例')
+        var count = ref(0)
+        var name = ref('')
+        return { title: title, desc: desc, count: count, name: name }
+      }
+    }).mount('#app')
+  }
 </script>
