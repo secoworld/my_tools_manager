@@ -40,7 +40,7 @@ const DEFAULT_MANIFEST = {
   needBackend: false
 }
 
-const DEFAULT_HTML = `<div id="app">
+const DEFAULT_HTML = `<div id="app" v-cloak>
   <h1>{{ title }}</h1>
   <p>{{ desc }}</p>
   <div class="counter">
@@ -55,6 +55,7 @@ const DEFAULT_HTML = `<div id="app">
 </div>
 
 <style>
+  [v-cloak] { display: none; }
   #app {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     padding: 24px;
@@ -102,30 +103,17 @@ const DEFAULT_HTML = `<div id="app">
   .input-group p { margin-top: 8px; color: #67c23a; }
 </style>
 
+` + '<' + 'script src="/vendor/vue.global.js">' + '<' + '/script>' + `
 <script>
-  // 优先加载本地 vue.global.js，失败时回退到 CDN
-  (function loadVue(onReady) {
+  // 如果本地加载失败（Vue 未定义），再加载 CDN
+  if (typeof Vue === 'undefined') {
     var s = document.createElement('script')
-    s.src = '/vendor/vue.global.js'
-    s.onload = function () {
-      if (window.Vue) { onReady(); return }
-      tryFallback(onReady)
-    }
-    s.onerror = function () { tryFallback(onReady) }
+    s.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
+    s.onload = initApp
     document.head.appendChild(s)
-
-    function tryFallback(cb) {
-      var f = document.createElement('script')
-      f.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
-      f.onload = function () { cb() }
-      f.onerror = function () {
-        document.getElementById('app').innerHTML = '<div style="padding:24px;color:#f56c6c;">Vue 加载失败，请检查网络连接</div>'
-      }
-      document.head.appendChild(f)
-    }
-  })(function () {
+  } else {
     initApp()
-  })
+  }
 
   function initApp() {
     var createApp = Vue.createApp
@@ -156,7 +144,7 @@ const CONVERTER_MANIFEST = {
   needBackend: false
 }
 
-const CONVERTER_HTML = `<div id="app">
+const CONVERTER_HTML = `<div id="app" v-cloak>
   <h1>进制转换工具</h1>
   <p class="desc">输入任意进制的数值，自动转换为其他进制</p>
   <div class="converter">
@@ -177,6 +165,7 @@ const CONVERTER_HTML = `<div id="app">
 </div>
 
 <style>
+  [v-cloak] { display: none; }
   #app {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     padding: 20px;
@@ -247,32 +236,23 @@ const CONVERTER_HTML = `<div id="app">
   }
 </style>
 
+` + '<' + 'script src="/vendor/vue.global.js">' + '<' + '/script>' + `
 <script>
-  // 优先加载本地 vue.global.js，失败时回退到 CDN
-  (function loadVue(onReady) {
+  // 如果本地加载失败（Vue 未定义），再加载 CDN
+  if (typeof Vue === 'undefined') {
     var s = document.createElement('script')
-    s.src = '/vendor/vue.global.js'
-    s.onload = function () {
-      if (window.Vue) { onReady(); return }
-      tryFallback(onReady)
-    }
-    s.onerror = function () { tryFallback(onReady) }
+    s.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
+    s.onload = initApp
     document.head.appendChild(s)
-
-    function tryFallback(cb) {
-      var f = document.createElement('script')
-      f.src = 'https://unpkg.com/vue@3.5.38/dist/vue.global.js'
-      f.onload = function () { cb() }
-      f.onerror = function () {
-        document.getElementById('app').innerHTML = '<div style="padding:24px;color:#f56c6c;">Vue 加载失败，请检查网络连接</div>'
-      }
-      document.head.appendChild(f)
-    }
-  })(function () { initApp() })
+  } else {
+    initApp()
+  }
 
   function initApp() {
     var createApp = Vue.createApp
     var ref = Vue.ref
+    var reactive = Vue.reactive
+    var onMounted = Vue.onMounted
     createApp({
       setup: function () {
         var bases = ref([

@@ -39,11 +39,14 @@ public class PendingPluginController {
 
     private final PendingPluginService pendingPluginService;
     private final SessionManager sessionManager;
+    private final PluginAuditLogService auditLogService;
 
     public PendingPluginController(PendingPluginService pendingPluginService,
-                                   SessionManager sessionManager) {
+                                   SessionManager sessionManager,
+                                   PluginAuditLogService auditLogService) {
         this.pendingPluginService = pendingPluginService;
         this.sessionManager = sessionManager;
+        this.auditLogService = auditLogService;
     }
 
     /**
@@ -55,7 +58,18 @@ public class PendingPluginController {
                                           HttpServletRequest request) {
         try {
             String submitter = getSubmitter(request);
+            String clientIp = getClientIp(request);
             PendingPluginEntity entity = pendingPluginService.submitPlugin(file, submitter);
+            // 记录审核日志
+            auditLogService.log(
+                    entity.getPluginId(),
+                    entity.getName(),
+                    entity.getVersion(),
+                    "SUBMIT",
+                    submitter,
+                    clientIp,
+                    "提交插件审核，版本: " + entity.getVersion()
+            );
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "插件提交成功，等待管理员审核");
@@ -113,7 +127,19 @@ public class PendingPluginController {
         }
         try {
             String reviewComment = body != null ? body.get("reviewComment") : null;
+            String operator = getSubmitter(request);
+            String clientIp = getClientIp(request);
             PluginEntity entity = pendingPluginService.approvePlugin(pluginId, reviewComment);
+            // 记录审核日志
+            auditLogService.log(
+                    entity.getPluginId(),
+                    entity.getName(),
+                    entity.getVersion(),
+                    "APPROVE",
+                    operator,
+                    clientIp,
+                    reviewComment != null ? reviewComment : "审核通过"
+            );
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "插件审核通过，已安装");
@@ -139,7 +165,25 @@ public class PendingPluginController {
         }
         try {
             String reviewComment = body != null ? body.get("reviewComment") : null;
+            String operator = getSubmitter(request);
+            String clientIp = getClientIp(request);
+            // 先获取待审核插件信息用于日志记录
+            List<PendingPluginEntity> pendingList = pendingPluginService.getPendingPlugins();
+            PendingPluginEntity pendingEntity = pendingList.stream()
+                    .filter(p -> pluginId.equals(p.getPluginId()))
+                    .findFirst()
+                    .orElse(null);
             pendingPluginService.rejectPlugin(pluginId, reviewComment);
+            // 记录审核日志
+            auditLogService.log(
+                    pluginId,
+                    pendingEntity != null ? pendingEntity.getName() : pluginId,
+                    pendingEntity != null ? pendingEntity.getVersion() : "",
+                    "REJECT",
+                    operator,
+                    clientIp,
+                    reviewComment != null ? reviewComment : "审核拒绝"
+            );
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "插件已拒绝");
@@ -162,7 +206,25 @@ public class PendingPluginController {
             return ResponseEntity.status(403).body(Map.of("success", false, "message", "需要管理员权限"));
         }
         try {
+            String operator = getSubmitter(request);
+            String clientIp = getClientIp(request);
+            // 先获取待审核插件信息用于日志记录
+            List<PendingPluginEntity> pendingList = pendingPluginService.getPendingPlugins();
+            PendingPluginEntity pendingEntity = pendingList.stream()
+                    .filter(p -> pluginId.equals(p.getPluginId()))
+                    .findFirst()
+                    .orElse(null);
             pendingPluginService.deletePendingPlugin(pluginId);
+            // 记录审核日志
+            auditLogService.log(
+                    pluginId,
+                    pendingEntity != null ? pendingEntity.getName() : pluginId,
+                    pendingEntity != null ? pendingEntity.getVersion() : "",
+                    "DELETE",
+                    operator,
+                    clientIp,
+                    "删除待审核插件"
+            );
             Map<String, Object> result = new HashMap<>();
             result.put("success", true);
             result.put("message", "待审核插件已删除");
@@ -182,6 +244,28 @@ public class PendingPluginController {
             return sessionManager.getUsername(token);
         }
         return "anonymous";
+    }
+
+    /** 获取客户端 IP 地址 */
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // 多级代理时取第一个
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     /** 检查是否为 admin 用户 */

@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pluginApi } from '../api'
 import { useAuthStore } from '../stores/auth'
-import { Search, Check, Close, Delete, Refresh } from '@element-plus/icons-vue'
+import { Search, Check, Close, Delete, Refresh, Document } from '@element-plus/icons-vue'
 
 const auth = useAuthStore()
 
@@ -18,6 +18,16 @@ const previewHtml = ref('')
 const rejectVisible = ref(false)
 const rejectPluginId = ref('')
 const rejectComment = ref('')
+
+// 审核日志弹窗
+const logVisible = ref(false)
+const logLoading = ref(false)
+const logData = ref([])
+const logTotal = ref(0)
+const logPage = ref(1)
+const logSize = ref(100)
+const logTotalPages = ref(0)
+const logFilterPluginId = ref('')
 
 // 加载待审核插件列表
 async function loadPendingPlugins() {
@@ -120,6 +130,76 @@ async function handleDelete(row) {
   }
 }
 
+// 查看审核日志
+async function handleViewLogs(pluginId = '') {
+  logFilterPluginId.value = pluginId
+  logPage.value = 1
+  logVisible.value = true
+  await loadAuditLogs()
+}
+
+// 加载审核日志
+async function loadAuditLogs() {
+  logLoading.value = true
+  try {
+    const res = logFilterPluginId.value
+      ? await pluginApi.getAuditLogsByPluginId(logFilterPluginId.value, logPage.value, logSize.value)
+      : await pluginApi.getAuditLogs(logPage.value, logSize.value)
+    if (res.success) {
+      logData.value = res.data || []
+      logTotal.value = res.total || 0
+      logTotalPages.value = res.totalPages || 0
+    } else {
+      ElMessage.error(res.message || '加载日志失败')
+      logData.value = []
+    }
+  } catch (e) {
+    ElMessage.error('加载日志失败: ' + e.message)
+    logData.value = []
+  } finally {
+    logLoading.value = false
+  }
+}
+
+// 日志页码改变
+function handleLogPageChange(page) {
+  logPage.value = page
+  loadAuditLogs()
+}
+
+// 日志每页条数改变
+function handleLogSizeChange(size) {
+  logSize.value = size
+  logPage.value = 1
+  loadAuditLogs()
+}
+
+// 操作行为标签类型
+function getActionTagType(action) {
+  const map = {
+    SUBMIT: 'warning',
+    APPROVE: 'success',
+    REJECT: 'danger',
+    DELETE: 'danger',
+    UPLOAD: 'primary',
+    UPDATE: 'info'
+  }
+  return map[action] || 'info'
+}
+
+// 操作行为中文
+function getActionText(action) {
+  const map = {
+    SUBMIT: '提交审核',
+    APPROVE: '审核通过',
+    REJECT: '审核拒绝',
+    DELETE: '删除',
+    UPLOAD: '上传',
+    UPDATE: '更新'
+  }
+  return map[action] || action
+}
+
 // 格式化时间
 function formatTime(time) {
   if (!time) return '-'
@@ -140,6 +220,7 @@ onMounted(() => {
         <el-tag type="warning" size="large">待审核: {{ pendingPlugins.length }}</el-tag>
       </div>
       <div class="toolbar-right">
+        <el-button :icon="Document" @click="handleViewLogs('')">审核日志</el-button>
         <el-button :icon="Refresh" @click="loadPendingPlugins">刷新</el-button>
         <el-button @click="$router.push('/admin')">返回插件管理</el-button>
       </div>
@@ -185,7 +266,7 @@ onMounted(() => {
           {{ formatTime(row.submittedAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="240" align="center" fixed="right">
+      <el-table-column label="操作" width="300" align="center" fixed="right">
         <template #default="{ row }">
           <el-button
             type="primary"
@@ -213,6 +294,14 @@ onMounted(() => {
             @click="handleReject(row)"
           >
             拒绝
+          </el-button>
+          <el-button
+            size="small"
+            :icon="Document"
+            link
+            @click="handleViewLogs(row.pluginId)"
+          >
+            日志
           </el-button>
           <el-popconfirm
             title="确定删除该待审核插件吗？"
@@ -274,6 +363,75 @@ onMounted(() => {
         <el-button @click="rejectVisible = false">取消</el-button>
         <el-button type="warning" @click="handleRejectConfirm">确认拒绝</el-button>
       </template>
+    </el-dialog>
+
+    <!-- 审核日志弹窗 -->
+    <el-dialog
+      v-model="logVisible"
+      :title="logFilterPluginId ? `审核日志: ${logFilterPluginId}` : '审核日志'"
+      width="90%"
+      top="5vh"
+      destroy-on-close
+    >
+      <div class="log-toolbar">
+        <div class="log-info">
+          <span>共 {{ logTotal }} 条记录</span>
+          <span v-if="logFilterPluginId" class="log-filter-tag">
+            <el-tag size="small" type="warning">过滤: {{ logFilterPluginId }}</el-tag>
+            <el-button size="small" link @click="logFilterPluginId = ''; logPage = 1; loadAuditLogs()">查看全部</el-button>
+          </span>
+        </div>
+        <div class="log-controls">
+          <span>每页</span>
+          <el-select v-model="logSize" size="small" style="width: 100px;" @change="handleLogSizeChange">
+            <el-option :value="50" label="50 条" />
+            <el-option :value="100" label="100 条" />
+            <el-option :value="200" label="200 条" />
+            <el-option :value="500" label="500 条" />
+          </el-select>
+          <el-button :icon="Refresh" size="small" @click="loadAuditLogs">刷新</el-button>
+        </div>
+      </div>
+      <el-table
+        v-loading="logLoading"
+        :data="logData"
+        border
+        stripe
+        max-height="60vh"
+        empty-text="暂无日志记录"
+      >
+        <el-table-column label="操作时间" width="180" align="center">
+          <template #default="{ row }">
+            {{ formatTime(row.operationTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="IP地址" prop="operatorIp" width="140" align="center" />
+        <el-table-column label="插件ID" prop="pluginId" width="160">
+          <template #default="{ row }">
+            <code class="plugin-id-code">{{ row.pluginId }}</code>
+          </template>
+        </el-table-column>
+        <el-table-column label="插件名称" prop="pluginName" min-width="120" />
+        <el-table-column label="版本" prop="pluginVersion" width="90" align="center" />
+        <el-table-column label="操作行为" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getActionTagType(row.action)" size="small">
+              {{ getActionText(row.action) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作者" prop="operator" width="110" align="center" />
+        <el-table-column label="详情" prop="detail" min-width="200" show-overflow-tooltip />
+      </el-table>
+      <div class="log-pagination">
+        <el-pagination
+          v-model:current-page="logPage"
+          :page-size="logSize"
+          :total="logTotal"
+          layout="prev, pager, next, jumper, total"
+          @current-change="handleLogPageChange"
+        />
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -340,5 +498,43 @@ onMounted(() => {
   height: 100%;
   border: none;
   background: #fff;
+}
+
+.log-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.log-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.log-filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.log-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
 }
 </style>

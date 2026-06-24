@@ -253,5 +253,15 @@ export const pluginApi = {
     return fetchWithAuth(`${PLUGIN_BASE}/pending/${pluginId}`, {
       method: 'DELETE'
     })
+  },
+
+  /** 获取审核日志（admin） - 分页查询，按时间倒序 */
+  getAuditLogs(page = 1, size = 100) {
+    return fetchWithAuth(`${PLUGIN_BASE}/audit-logs?page=${page}&size=${size}`)
+  },
+
+  /** 根据 pluginId 获取审核日志（admin） */
+  getAuditLogsByPluginId(pluginId, page = 1, size = 100) {
+    return fetchWithAuth(`${PLUGIN_BASE}/audit-logs/${pluginId}?page=${page}&size=${size}`)
   }
 }
