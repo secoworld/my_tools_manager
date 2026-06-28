@@ -13,14 +13,24 @@ const ready = ref(false)
 const lastDiagramXml = ref('')
 
 // postMessage 消息处理
+// 注意：drawio 在 proto=json 模式下通过 postMessage 发送 JSON 字符串（非对象）
 function handleMessage(event) {
-  const msg = event.data
-  if (!msg || typeof msg !== 'object') return
+  let msg = event.data
+  if (!msg) return
+  if (typeof msg === 'string') {
+    try { msg = JSON.parse(msg) } catch (e) { return }
+  }
+  if (typeof msg !== 'object') return
 
   switch (msg.event) {
     case 'init':
-      // drawio iframe 初始化完成
+      // drawio iframe 初始化完成，发送空图表让它进入可编辑状态
       ready.value = true
+      sendMsg({
+        action: 'load',
+        xml: '<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel>',
+        autosave: 0
+      })
       break
     case 'save':
       // 用户点击保存，收到 XML 数据
@@ -41,7 +51,8 @@ function handleMessage(event) {
 
 function sendMsg(msg) {
   if (iframeRef.value && iframeRef.value.contentWindow) {
-    iframeRef.value.contentWindow.postMessage(msg, '*')
+    // proto=json 协议要求发送 JSON 字符串
+    iframeRef.value.contentWindow.postMessage(JSON.stringify(msg), '*')
   }
 }
 

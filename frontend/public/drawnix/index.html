@@ -69,6 +69,39 @@
     <base href="./" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      // 实例隔离：根据 URL 的 instance 参数为每个 Drawnix 标签页使用独立的 IndexedDB 数据库
+      // 避免多个 Drawnix 标签页共享同一份数据（localforage 配置 name:"Drawnix", storeName:"drawnix_store"）
+      (function() {
+        var instanceId = new URLSearchParams(location.search).get('instance');
+        if (instanceId) {
+          // 拦截 indexedDB.open，将 "Drawnix" 重命名为 "Drawnix_<instanceId>"
+          var originalOpen = indexedDB.open.bind(indexedDB);
+          indexedDB.open = function(name, version) {
+            if (name === 'Drawnix') { name = 'Drawnix_' + instanceId; }
+            return originalOpen(name, version);
+          };
+          // 拦截 localStorage（localforage 回退驱动使用 "localforage/drawnix_store/" 前缀）
+          var lsPrefix = 'localforage/drawnix_store/';
+          var lsInstPrefix = 'localforage/drawnix_store_' + instanceId + '/';
+          var origGet = localStorage.getItem.bind(localStorage);
+          var origSet = localStorage.setItem.bind(localStorage);
+          var origRm = localStorage.removeItem.bind(localStorage);
+          localStorage.getItem = function(k) {
+            if (typeof k === 'string' && k.indexOf(lsPrefix) === 0) { k = lsInstPrefix + k.substring(lsPrefix.length); }
+            return origGet(k);
+          };
+          localStorage.setItem = function(k, v) {
+            if (typeof k === 'string' && k.indexOf(lsPrefix) === 0) { k = lsInstPrefix + k.substring(lsPrefix.length); }
+            return origSet(k, v);
+          };
+          localStorage.removeItem = function(k) {
+            if (typeof k === 'string' && k.indexOf(lsPrefix) === 0) { k = lsInstPrefix + k.substring(lsPrefix.length); }
+            return origRm(k);
+          };
+        }
+      })();
+    </script>
     <script type="module" crossorigin src="assets/index-BNWsUNbP.js"></script>
     <link rel="stylesheet" crossorigin href="assets/index-JXf0kvzV.css">
   </head>

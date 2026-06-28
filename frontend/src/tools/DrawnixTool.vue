@@ -12,8 +12,9 @@ const iframeKey = ref(0)
 const ready = ref(false)
 const sceneData = ref(null)
 
-// Drawnix 嵌入 URL
-const iframeSrc = '/drawnix/index.html'
+// Drawnix 嵌入 URL，附带 instanceId 参数用于 IndexedDB 实例隔离
+// index.html 中的脚本会读取该参数，为每个标签页使用独立的数据库
+const iframeSrc = `/drawnix/index.html?instance=${props.instanceId}`
 
 function handleMessage(event) {
   const msg = event.data

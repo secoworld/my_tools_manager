@@ -114,6 +114,14 @@ export const toolRegistry = {
     category: '绘图',
     needBackend: false,
     component: defineAsyncComponent(() => import('./DrawnixTool.vue'))
+  },
+  'text-utils': {
+    id: 'text-utils',
+    name: '文本工具',
+    icon: 'Document',
+    category: '文本',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./TextUtils.vue'))
   }
 }
 
