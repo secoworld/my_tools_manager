@@ -36,6 +36,12 @@ export const useCommandStore = defineStore('commandStore', {
       await this.fetchModules()
     },
 
+    // 更新模块
+    async updateModule(id, data) {
+      await api.updateModule(id, data)
+      await this.fetchModules()
+    },
+
     // 获取模块下的命令
     async fetchCommands(moduleId) {
       try {

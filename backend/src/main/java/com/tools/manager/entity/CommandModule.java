@@ -31,6 +31,10 @@ public class CommandModule {
 
     private Integer sortOrder;
 
+    /** 模块格式：command（命令库，默认）或 gitbook（文档库） */
+    @Column(nullable = false)
+    private String format = "command";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
