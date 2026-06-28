@@ -82,6 +82,14 @@ export const toolRegistry = {
     category: '对比',
     needBackend: false,
     component: defineAsyncComponent(() => import('./TextCompare.vue'))
+  },
+  'markdown-editor': {
+    id: 'markdown-editor',
+    name: 'Markdown编辑器',
+    icon: 'EditPen',
+    category: '记录',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./MarkdownEditor.vue'))
   }
 }
 
