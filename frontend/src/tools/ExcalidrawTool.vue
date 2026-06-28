@@ -5,6 +5,7 @@ import { Download, Upload, Camera, Refresh } from '@element-plus/icons-vue'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Excalidraw, exportToBlob, serializeAsJSON } from '@excalidraw/excalidraw'
+import '@excalidraw/excalidraw/index.css'
 
 const props = defineProps({
   instanceId: { type: String, required: true }
