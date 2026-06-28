@@ -49,7 +49,9 @@ public class SecurityConfig {
             "/api/commands/",
             "/assets/",
             "/vendor/",
-            "/h2-console/"
+            "/h2-console/",
+            // 前端工具的静态资源路径（离线嵌入的 SPA）
+            "/drawnix/"
     );
 
     public SecurityConfig(SessionManager sessionManager) {
@@ -75,6 +77,7 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/assets/**",
                                 "/vendor/**",
+                                "/drawnix/**",
                                 "/h2-console/**"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -104,6 +107,12 @@ public class SecurityConfig {
 
                 // 放行 OPTIONS 预检请求
                 if ("OPTIONS".equalsIgnoreCase(method)) {
+                    chain.doFilter(request, response);
+                    return;
+                }
+
+                // 非 /api/ 路径为前端静态资源，直接放行
+                if (path == null || !path.startsWith("/api/")) {
                     chain.doFilter(request, response);
                     return;
                 }

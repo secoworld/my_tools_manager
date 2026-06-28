@@ -25,6 +25,26 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // 支持通过系统属性或环境变量重置 admin 密码
+        // 用法: -Dapp.reset-admin-password=Admin@123 或 APP_RESET_ADMIN_PASSWORD=Admin@123
+        String resetPassword = System.getProperty("app.reset-admin-password");
+        if (resetPassword == null || resetPassword.isEmpty()) {
+            resetPassword = System.getenv("APP_RESET_ADMIN_PASSWORD");
+        }
+
+        if (resetPassword != null && !resetPassword.isEmpty()) {
+            Optional<UserEntity> existing = userRepository.findByUsername("admin");
+            if (existing.isPresent()) {
+                UserEntity user = existing.get();
+                user.setPasswordHash(passwordEncoder.encode(resetPassword));
+                user.setMustChangePassword(false);
+                userRepository.save(user);
+                log.info("Admin password has been reset via system property");
+                log.info("Admin username: admin");
+                return;
+            }
+        }
+
         Optional<UserEntity> existing = userRepository.findByUsername("admin");
         if (existing.isPresent()) {
             log.info("Admin user already exists, skipping initialization");
