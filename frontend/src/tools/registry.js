@@ -90,6 +90,30 @@ export const toolRegistry = {
     category: '记录',
     needBackend: false,
     component: defineAsyncComponent(() => import('./MarkdownEditor.vue'))
+  },
+  'drawio': {
+    id: 'drawio',
+    name: 'Draw.io流程图',
+    icon: 'Connection',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./DrawioTool.vue'))
+  },
+  'excalidraw': {
+    id: 'excalidraw',
+    name: 'Excalidraw手绘',
+    icon: 'Brush',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./ExcalidrawTool.vue'))
+  },
+  'drawnix': {
+    id: 'drawnix',
+    name: 'Drawnix思维导图',
+    icon: 'MagicStick',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./DrawnixTool.vue'))
   }
 }
 
