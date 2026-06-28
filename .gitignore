@@ -31,6 +31,8 @@ desktop.ini
 # ===== Logs =====
 *.log
 logs/
+# 保留变更日志文件
+!change.log
 
 # ===== H2 Database =====
 *.db
