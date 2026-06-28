@@ -211,8 +211,12 @@ const onDragStart = (e, id) => {
   dragId.value = id
   isDragging.value = true
   e.dataTransfer.effectAllowed = 'move'
-  // 设置半透明的拖拽影像
-  e.dataTransfer.setDragImage(e.target.closest('.tool-card'), 0, 0)
+  // 设置拖拽影像，偏移量为鼠标点击位置相对于卡片的坐标，避免预览图跳变
+  const card = e.currentTarget.closest('.tool-card')
+  if (card) {
+    const rect = card.getBoundingClientRect()
+    e.dataTransfer.setDragImage(card, e.clientX - rect.left, e.clientY - rect.top)
+  }
 }
 
 const onDragOver = (e) => {

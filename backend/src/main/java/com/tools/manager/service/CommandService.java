@@ -41,6 +41,20 @@ public class CommandService {
         moduleRepository.deleteById(id);
     }
 
+    @Transactional
+    public CommandModule updateModule(Long id, CommandModule module) {
+        CommandModule existing = moduleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("模块不存在: " + id));
+        existing.setName(module.getName());
+        existing.setDescription(module.getDescription());
+        existing.setIcon(module.getIcon());
+        existing.setSortOrder(module.getSortOrder());
+        if (module.getFormat() != null) {
+            existing.setFormat(module.getFormat());
+        }
+        return moduleRepository.save(existing);
+    }
+
     public List<Command> listCommandsByModule(Long moduleId) {
         return commandRepository.findByModuleIdOrderBySortOrderAsc(moduleId);
     }
@@ -68,6 +82,7 @@ public class CommandService {
         existing.setDescription(command.getDescription());
         existing.setCategory(command.getCategory());
         existing.setSortOrder(command.getSortOrder());
+        existing.setContent(command.getContent());
         return commandRepository.save(existing);
     }
 

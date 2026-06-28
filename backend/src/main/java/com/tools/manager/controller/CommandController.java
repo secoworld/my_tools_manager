@@ -39,6 +39,11 @@ public class CommandController {
         commandService.deleteModule(id);
     }
 
+    @PutMapping("/modules/{id}")
+    public CommandModule updateModule(@PathVariable Long id, @RequestBody CommandModule module) {
+        return commandService.updateModule(id, module);
+    }
+
     @GetMapping("/module/{moduleId}")
     public List<Command> listCommandsByModule(@PathVariable Long moduleId) {
         return commandService.listCommandsByModule(moduleId);

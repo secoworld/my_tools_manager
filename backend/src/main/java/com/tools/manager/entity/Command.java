@@ -31,6 +31,10 @@ public class Command {
 
     private String description;
 
+    /** 文档内容（Markdown 格式，用于 gitbook 类型模块） */
+    @Column(columnDefinition = "TEXT")
+    private String content;
+
     private String category;
 
     private Integer sortOrder;

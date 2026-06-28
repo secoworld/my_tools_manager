@@ -155,8 +155,7 @@ onUnmounted(() => {
           <div
             v-for="win in windows"
             :key="win.instanceId"
-            v-show="win.instanceId === activeWindowId"
-            class="window-pane"
+            :class="['window-pane', { 'window-pane--hidden': win.instanceId !== activeWindowId }]"
           >
             <component :is="win.component" :instance-id="win.instanceId" :plugin-id="win.toolId" />
           </div>
@@ -315,6 +314,16 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background-color: #fff;
+  position: absolute;
+  inset: 0;
+}
+
+/* 使用 visibility:hidden 代替 display:none，避免隐藏的 iframe/canvas 丢失尺寸
+   导致切换回来时触发 resize 重置视口（如 Drawnix 图形位置偏移问题） */
+.window-pane--hidden {
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .empty-state {

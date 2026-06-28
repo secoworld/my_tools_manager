@@ -82,6 +82,46 @@ export const toolRegistry = {
     category: '对比',
     needBackend: false,
     component: defineAsyncComponent(() => import('./TextCompare.vue'))
+  },
+  'markdown-editor': {
+    id: 'markdown-editor',
+    name: 'Markdown编辑器',
+    icon: 'EditPen',
+    category: '记录',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./MarkdownEditor.vue'))
+  },
+  'drawio': {
+    id: 'drawio',
+    name: 'Draw.io流程图',
+    icon: 'Connection',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./DrawioTool.vue'))
+  },
+  'excalidraw': {
+    id: 'excalidraw',
+    name: 'Excalidraw手绘',
+    icon: 'Brush',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./ExcalidrawTool.vue'))
+  },
+  'drawnix': {
+    id: 'drawnix',
+    name: 'Drawnix思维导图',
+    icon: 'MagicStick',
+    category: '绘图',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./DrawnixTool.vue'))
+  },
+  'text-utils': {
+    id: 'text-utils',
+    name: '文本工具',
+    icon: 'Document',
+    category: '文本',
+    needBackend: false,
+    component: defineAsyncComponent(() => import('./TextUtils.vue'))
   }
 }
 

@@ -40,6 +40,8 @@ export const getModules = () => request.get('/commands/modules')
 
 export const createModule = (data) => request.post('/commands/modules', data)
 
+export const updateModule = (id, data) => request.put(`/commands/modules/${id}`, data)
+
 export const deleteModule = (id) => request.delete(`/commands/modules/${id}`)
 
 // 命令相关 API
@@ -57,6 +59,7 @@ export default {
   executeTool,
   getModules,
   createModule,
+  updateModule,
   deleteModule,
   getCommands,
   createCommand,
