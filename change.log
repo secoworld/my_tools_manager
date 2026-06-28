@@ -29,12 +29,18 @@
 - 修复 Excalidraw 样式错乱问题（CSS 导入缺失）
 - 修复 Drawnix 多标签页内容共享问题（IndexedDB 实例隔离）
 - 修复 Drawnix 切换标签后图形位置偏移问题（visibility 代替 display:none）
+- 修复 Drawnix 静态资源被认证拦截返回"未登录或登录已过期"的问题
 - 修复 MD5 图标过大问题
 
 ### ♻️ 重构
 
 - Draw.io 由离线模式改回在线模式，删除约 73MB 离线文件减少仓库体积
 - Drawnix iframe 添加实例隔离机制，每个标签页独立 IndexedDB 数据库
+- SecurityConfig 认证过滤器改为只处理 /api/ 路径，非 API 静态资源自动放行
+
+### 🔧 维护
+
+- DataInitializer 支持通过 `-Dapp.reset-admin-password` 系统属性重置 admin 密码
 
 ### 📝 文档
 
