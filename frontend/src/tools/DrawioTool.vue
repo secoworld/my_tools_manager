@@ -8,7 +8,7 @@ const props = defineProps({
 })
 
 const iframeRef = ref(null)
-const iframeSrc = 'https://embed.diagrams.net/?embed=1&proto=json&saveAndExit=1&noSaveBtn=0&noExitBtn=1&lang=zh'
+const iframeSrc = '/drawio/index.html?embed=1&proto=json&saveAndExit=1&noSaveBtn=0&noExitBtn=1&lang=zh'
 const ready = ref(false)
 const lastDiagramXml = ref('')
 
@@ -117,8 +117,8 @@ onBeforeUnmount(() => {
     <div class="draw-toolbar">
       <div class="toolbar-info">
         <span class="tool-label">Draw.io 流程图</span>
-        <el-tag v-if="ready" size="small" type="success">已连接</el-tag>
-        <el-tag v-else size="small" type="info">连接中...</el-tag>
+        <el-tag v-if="ready" size="small" type="success">离线</el-tag>
+        <el-tag v-else size="small" type="info">加载中...</el-tag>
       </div>
       <div class="toolbar-actions">
         <el-button size="small" :icon="Upload" @click="triggerImport">导入</el-button>

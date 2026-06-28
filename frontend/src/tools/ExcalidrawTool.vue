@@ -2,85 +2,111 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, Upload, Camera, Refresh } from '@element-plus/icons-vue'
+import { createElement } from 'react'
+import { createRoot } from 'react-dom/client'
+import { Excalidraw, exportToBlob, serializeAsJSON } from '@excalidraw/excalidraw'
 
 const props = defineProps({
   instanceId: { type: String, required: true }
 })
 
-const iframeRef = ref(null)
-const iframeKey = ref(0)
-const ready = ref(false)
-const sceneData = ref(null)
+const containerRef = ref(null)
+let reactRoot = null
+let excalidrawApi = null
 
-// Excalidraw 嵌入 URL（支持 embed 模式）
-const iframeSrc = 'https://excalidraw.com/'
+onMounted(() => {
+  if (!containerRef.value) return
+  reactRoot = createRoot(containerRef.value)
+  reactRoot.render(
+    createElement(Excalidraw, {
+      excalidrawAPI: (api) => { excalidrawApi = api },
+      initialData: {
+        elements: [],
+        appState: { gridSize: null, viewBackgroundColor: '#ffffff' },
+        scrollToContent: true
+      },
+      UIOptions: {
+        canvasActions: {
+          loadScene: false,
+          saveToActiveFile: false,
+          export: { saveFileToDisk: false },
+          toggleTheme: false
+        }
+      }
+    })
+  )
+})
 
-// postMessage 消息处理（Excalidraw 支持 scene 更新事件）
-function handleMessage(event) {
-  if (event.origin !== 'https://excalidraw.com') return
-  const msg = event.data
-  if (!msg) return
-
-  // Excalidraw 发送场景更新
-  if (msg.type === 'SCENE_UPDATE' || msg.type === 'excalidrawScene') {
-    sceneData.value = msg.payload || msg.elements || msg
-    ready.value = true
+onBeforeUnmount(() => {
+  if (reactRoot) {
+    reactRoot.unmount()
+    reactRoot = null
   }
-}
-
-function sendMsg(msg) {
-  if (iframeRef.value && iframeRef.value.contentWindow) {
-    iframeRef.value.contentWindow.postMessage(msg, 'https://excalidraw.com')
-  }
-}
+  excalidrawApi = null
+})
 
 // 导入 .excalidraw / .json 文件
 const fileInput = ref(null)
 function triggerImport() { fileInput.value?.click() }
 
-function handleFileChange(e) {
+async function handleFileChange(e) {
   const file = e.target.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    try {
-      const data = JSON.parse(event.target.result)
-      sceneData.value = data
-      // 尝试通过 postMessage 导入场景
-      sendMsg({ type: 'IMPORT', data })
-      // 同时通过 URL hash 加载
-      const encoded = encodeURIComponent(JSON.stringify(data))
-      iframeRef.value.src = `https://excalidraw.com/#json=${encoded}`
+  try {
+    const text = await file.text()
+    const data = JSON.parse(text)
+    if (excalidrawApi && data.elements) {
+      excalidrawApi.updateScene({ elements: data.elements })
+      excalidrawApi.scrollToContent()
       ElMessage.success(`已导入: ${file.name}`)
-    } catch {
-      ElMessage.error('文件格式不正确，请选择 .excalidraw 或 .json 文件')
+    } else {
+      ElMessage.warning('文件格式不正确，未找到 elements 数据')
     }
+  } catch (err) {
+    ElMessage.error('导入失败: ' + err.message)
   }
-  reader.onerror = () => ElMessage.error('文件读取失败')
-  reader.readAsText(file)
   e.target.value = ''
 }
 
 // 导出为 .excalidraw (JSON) 文件
 function exportData() {
-  if (sceneData.value) {
-    downloadJson(sceneData.value, `excalidraw-${Date.now()}.excalidraw`)
-    ElMessage.success('已导出 .excalidraw 文件')
-  } else {
-    // 如果没有场景数据，提示用户在 Excalidraw 中操作
-    ElMessage.info('请在 Excalidraw 中绘制内容后，使用导出菜单保存')
+  if (!excalidrawApi) { ElMessage.warning('编辑器未就绪'); return }
+  const elements = excalidrawApi.getSceneElements()
+  if (!elements || elements.length === 0) {
+    ElMessage.warning('画布为空，请先绘制内容')
+    return
   }
+  const appState = excalidrawApi.getAppState()
+  const files = excalidrawApi.getFiles()
+  const json = serializeAsJSON(elements, appState, files, 'local')
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' })
+  downloadBlob(blob, `excalidraw-${Date.now()}.excalidraw`)
+  ElMessage.success('已导出')
 }
 
 // 保存为 PNG 图片
-function saveAsImage() {
-  // Excalidraw 没有标准的 postMessage 导出 API
-  // 提示用户使用 Excalidraw 内置的导出功能
-  ElMessage.info('请点击画布左上角菜单 → 导出 → PNG/SVG 进行保存图片')
+async function saveAsImage() {
+  if (!excalidrawApi) { ElMessage.warning('编辑器未就绪'); return }
+  const elements = excalidrawApi.getSceneElements()
+  if (!elements || elements.length === 0) {
+    ElMessage.warning('画布为空')
+    return
+  }
+  try {
+    const blob = await exportToBlob({
+      elements,
+      appState: { ...excalidrawApi.getAppState(), exportBackground: true },
+      files: excalidrawApi.getFiles(),
+      mimeType: 'image/png'
+    })
+    downloadBlob(blob, `excalidraw-${Date.now()}.png`)
+    ElMessage.success('图片已保存')
+  } catch (err) {
+    ElMessage.error('导出图片失败: ' + err.message)
+  }
 }
 
-function downloadJson(data, filename) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -89,18 +115,12 @@ function downloadJson(data, filename) {
   URL.revokeObjectURL(url)
 }
 
-function reloadIframe() {
-  ready.value = false
-  iframeKey.value++
+function refreshEditor() {
+  if (excalidrawApi) {
+    excalidrawApi.refresh()
+    ElMessage.success('已刷新')
+  }
 }
-
-onMounted(() => {
-  window.addEventListener('message', handleMessage)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('message', handleMessage)
-})
 </script>
 
 <template>
@@ -108,26 +128,17 @@ onBeforeUnmount(() => {
     <div class="draw-toolbar">
       <div class="toolbar-info">
         <span class="tool-label">Excalidraw 手绘流程图</span>
-        <el-tag size="small" type="warning">在线工具</el-tag>
+        <el-tag size="small" type="success">离线</el-tag>
       </div>
       <div class="toolbar-actions">
         <el-button size="small" :icon="Upload" @click="triggerImport">导入</el-button>
         <el-button size="small" :icon="Download" @click="exportData">导出</el-button>
         <el-button size="small" type="primary" :icon="Camera" @click="saveAsImage">保存图片</el-button>
-        <el-button size="small" :icon="Refresh" @click="reloadIframe">刷新</el-button>
+        <el-button size="small" :icon="Refresh" @click="refreshEditor">刷新</el-button>
         <input ref="fileInput" type="file" accept=".excalidraw,.json,application/json" style="display:none" @change="handleFileChange" />
       </div>
     </div>
-    <div class="draw-iframe-container">
-      <iframe
-        ref="iframeRef"
-        :key="iframeKey"
-        :src="iframeSrc"
-        class="draw-iframe"
-        frameborder="0"
-        allowfullscreen
-      />
-    </div>
+    <div ref="containerRef" class="excalidraw-container" />
   </div>
 </template>
 
@@ -167,15 +178,14 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
-.draw-iframe-container {
+.excalidraw-container {
   flex: 1;
   min-height: 0;
-  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
-.draw-iframe {
-  width: 100%;
+.excalidraw-container :deep(.excalidraw) {
   height: 100%;
-  border: none;
 }
 </style>

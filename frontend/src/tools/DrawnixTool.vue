@@ -13,7 +13,7 @@ const ready = ref(false)
 const sceneData = ref(null)
 
 // Drawnix 嵌入 URL
-const iframeSrc = 'https://www.drawnix.com/'
+const iframeSrc = '/drawnix/index.html'
 
 function handleMessage(event) {
   const msg = event.data
@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
     <div class="draw-toolbar">
       <div class="toolbar-info">
         <span class="tool-label">Drawnix 思维导图</span>
-        <el-tag size="small" type="warning">在线工具</el-tag>
+        <el-tag size="small" type="success">离线</el-tag>
       </div>
       <div class="toolbar-actions">
         <el-button size="small" :icon="Upload" @click="triggerImport">导入</el-button>
